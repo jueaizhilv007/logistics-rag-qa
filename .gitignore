@@ -1,0 +1,24 @@
+# 环境与依赖
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ruff_cache/
+
+# 密钥：任何情况下不得进入提交记录
+.env
+
+# 索引与运行产物
+data/index/
+data/chroma/
+logs/
+*.log
+
+# 评测结果明细：体量大，保留汇总表即可
+data/eval/results/
+!data/eval/results/.gitkeep
+
+# 编辑器与系统
+.DS_Store
+.idea/
+.vscode/

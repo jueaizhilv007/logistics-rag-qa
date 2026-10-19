@@ -1,0 +1,78 @@
+app:
+  name: rag-qa
+  data_dir: ./data
+
+# 向量化服务。endpoints 下可挂任意数量的服务商，
+# 切换 provider 只改上面那一行，不用增删字段。
+embedding:
+  provider: agicto
+  endpoints:
+    agicto:
+      base_url: https://api.agicto.cn/v1/
+      model: text-embedding-3-small
+      batch_size: 64
+    local:
+      base_url: http://localhost:11434/v1
+      model: nomic-embed-text
+      batch_size: 32
+
+# LLM 服务。temperature 固定为 0：
+# 政策问答要求同一问题得到同一答案，否则引用编号不稳定，追溯链路会失效。
+llm:
+  provider: agicto
+  endpoints:
+    agicto:
+      base_url: https://api.agicto.cn/v1/
+      model: deepseek-chat
+      temperature: 0.0
+      max_tokens: 1024
+    local:
+      base_url: http://localhost:11434/v1
+      model: qwen2.5:7b
+      temperature: 0.0
+      max_tokens: 1024
+
+# 向量存储
+vector_store:
+  provider: lancedb
+  path: ./data/index
+  collection: docs
+  # 距离度量。embedding 场景必须用 cosine，
+  # 不指定时 LanceDB 默认走 L2，语义排序口径会不一致。
+  metric: cosine
+
+# 切片策略
+# strategy: fixed 固定窗口，hierarchical 按标题层级
+# inject_heading: 是否把标题链前缀拼进检索文本
+chunking:
+  strategy: fixed
+  size: 500
+  overlap: 50
+  inject_heading: true
+
+# 检索策略
+# mode 默认必须是 vector：E1 baseline 的口径就是「固定切片加纯向量」。
+# 若此处默认开启 hybrid，baseline 不再是纯向量，E2 以后的归因全部失效。
+retrieval:
+  mode: vector
+  top_k: 4
+  hybrid:
+    bm25_k: 10
+    vector_k: 10
+    weights: [0.5, 0.5]
+    rrf_k: 60
+  rerank:
+    enabled: false
+    provider: bge_local
+    top_n: 20
+
+# 生成层
+generate:
+  # 送进 LLM 的上下文 token 预算，超出后丢弃低排名片段
+  max_context_tokens: 6000
+  # 检索为空时的拒答话术
+  empty_answer: 知识库未覆盖该问题，建议转人工
+
+logging:
+  level: INFO
+  dir: ./logs
