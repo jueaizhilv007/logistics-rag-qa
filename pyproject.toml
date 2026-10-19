@@ -43,5 +43,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/rag_core"]
 
+[project.scripts]
+rag-qa = "rag_core.cli:app"
+
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"

@@ -72,6 +72,14 @@ class BaseVectorStore(Protocol):
 
     def optimize(self) -> None: ...
 
+    def clear(self) -> None:
+        """清空整个 collection。
+
+        对照实验切换切片策略后必须重建索引（E1→E2），逐条删除代价高。
+        drop_table 是合理语义。
+        """
+        ...
+
 
 @runtime_checkable
 class BaseRetriever(Protocol):

@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from rag_core.config import Config, GenerateCfg, RetrievalCfg, Secrets, load_config
 from rag_core.core.logging import get_logger
@@ -27,6 +27,9 @@ from rag_core.core.protocols import (
     BaseSplitter,
     BaseVectorStore,
 )
+
+if TYPE_CHECKING:
+    from rag_core.ingest.pipeline import IngestPipeline
 
 
 class RagCore:
@@ -47,6 +50,8 @@ class RagCore:
         # 显式注入路径下可以不传，此时 describe() 退化为默认策略标签。
         retrieval: Optional[RetrievalCfg] = None,
         generate: Optional[GenerateCfg] = None,
+        # 入库流水线：配置驱动路径下由 from_config 装配，显式注入可自行传入
+        ingest: Optional["IngestPipeline"] = None,
     ):
         self.embedding = embedding
         self.store = store
@@ -56,6 +61,7 @@ class RagCore:
         self.chunk_strategy = chunk_strategy
         self.retrieval = retrieval
         self.generate = generate
+        self.ingest = ingest
         self.log = get_logger("rag_core")
 
     @classmethod
@@ -119,6 +125,18 @@ class RagCore:
                 options=cfg.retrieval.rerank.options,
             )
 
+        # 入库流水线
+        # 显式注入路径不装配，由调用方自行构造；这里只在配置驱动路径下提供
+        from rag_core.ingest.loaders import all_loaders
+        from rag_core.ingest.pipeline import IngestPipeline
+
+        ingest = IngestPipeline(
+            loaders=all_loaders(),
+            splitter=splitter,
+            embedding=embedding,
+            store=store,
+        )
+
         # 内核实例
         core = cls(
             embedding=embedding,
@@ -129,6 +147,7 @@ class RagCore:
             chunk_strategy=cfg.chunking.strategy,
             retrieval=cfg.retrieval,
             generate=cfg.generate,
+            ingest=ingest,
         )
         return core, cfg, secrets
 
