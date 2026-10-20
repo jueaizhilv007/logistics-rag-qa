@@ -143,23 +143,43 @@ def _parse_markdown(text: str) -> list[tuple[str, str, str]]:
     return blocks
 
 
-def _drop_redundant_headings(blocks: list[tuple[str, str, str]]) -> list[tuple[str, str, str]]:
-    """去掉那些「其后的正文块已把本标题作为前缀」的孤立标题块。
+def _attach_headings(blocks: list[tuple[str, str, str]]) -> list[tuple[str, str, str]]:
+    """把标题块并入其后的正文块：标题原文字成为正文首行。
 
-    举例：块序列 [(父, heading, 子节标题), (父>子节, text, 正文)]
-    中前者的标题文本已经出现在后者的 heading_path 里，再单独成块只是重复。
-    保留下来只会让索引里多出「只有几个字」的 chunk。
+    标题行不单独成块——那样会产生「只有几个字」的碎片 chunk。
+    并入正文后每个 chunk 自包含，脱离上下文也能读懂。
     """
     out: list[tuple[str, str, str]] = []
-    for idx, (path, kind, text) in enumerate(blocks):
-        if kind != "heading":
+    pending: tuple[str, str] | None = None
+    for path, kind, text in blocks:
+        if kind == "heading":
+            if pending is not None:
+                # 上一个标题没有正文跟随，只能单独成块
+                out.append((_join(pending[0], pending[1]), "text", pending[1]))
+            pending = (path, text)
+            continue
+        if pending is not None:
+            out.append((_join(pending[0], pending[1]), "text", f"{pending[1]}\n\n{text}"))
+            pending = None
+        else:
             out.append((path, kind, text))
-            continue
-        nxt = blocks[idx + 1] if idx + 1 < len(blocks) else None
-        if nxt is not None and (nxt[0] == text or nxt[0].endswith(" > " + text)):
-            continue
-        out.append((path, "text", text))
+    if pending is not None:
+        out.append((_join(pending[0], pending[1]), "text", pending[1]))
     return out
+
+
+def _join(parent: str, title: str) -> str:
+    return f"{parent} > {title}" if parent else title
+
+
+def _shared_prefix(a: str, b: str) -> str:
+    """取两条标题链的最长公共前缀。"""
+    pa = a.split(" > ") if a else []
+    pb = b.split(" > ") if b else []
+    n = 0
+    while n < min(len(pa), len(pb)) and pa[n] == pb[n]:
+        n += 1
+    return " > ".join(pa[:n])
 
 
 def _merge_consecutive(blocks: list[tuple[str, str, str]]) -> list[tuple[str, str, str]]:
@@ -167,7 +187,6 @@ def _merge_consecutive(blocks: list[tuple[str, str, str]]) -> list[tuple[str, st
 
     Markdown 中一个列表与其前的引导句之间常有空行，
     _parse_markdown 会把空行看作块边界，导致同标题下的两段被切成两个 chunk。
-    合并后它们共享一个 heading_path，向量化与展示时都是一次完成的。
     """
     out: list[tuple[str, str, str]] = []
     for path, kind, text in blocks:
@@ -175,6 +194,35 @@ def _merge_consecutive(blocks: list[tuple[str, str, str]]) -> list[tuple[str, st
             out[-1] = (path, "text", out[-1][2] + "\n\n" + text)
         else:
             out.append((path, kind, text))
+    return out
+
+
+def _pack_by_path(blocks: list[tuple[str, str, str]], size: int) -> list[tuple[str, str, str]]:
+    """自底向上合并相邻块，直到接近 size 上限。
+
+    只按小节切会让每个小节单独成 chunk，实测平均不足 200 字，
+    语义碎片化：一条赔付规则可能与它的条款编号被切到两个 chunk。
+    这里把共享父标题的相邻小节合并，合并后的标题链退化为公共父路径——
+    子标题文本已经并入正文，信息不会丢。
+
+    公共前缀为空时不合并：那说明两块分属不同一级章节，合在一起语义无关。
+    """
+    out: list[tuple[str, str, str]] = []
+    for path, kind, text in blocks:
+        if kind in ("table", "code"):
+            out.append((path, kind, text))
+            continue
+        if out and out[-1][1] == "text":
+            prev_path, prev_text = out[-1][0], out[-1][2]
+            # 已经攒到 size 的 60% 就不再往里并：
+            # 继续并下去会把下一章的内容也拉进来，标题链被迫退化为公共父路径，
+            # 定位精度反而变差。半满即止，宁可多一个 chunk 也不要路径失真。
+            if len(prev_text) < size * 0.6 and len(prev_text) + 2 + len(text) <= size:
+                shared = _shared_prefix(prev_path, path)
+                if shared:
+                    out[-1] = (shared, "text", prev_text + "\n\n" + text)
+                    continue
+        out.append((path, "text", text))
     return out
 
 
@@ -261,7 +309,9 @@ class HierarchicalSplitter:
             if not text.strip():
                 continue
             page_obj = page if isinstance(page, LoadedPage) else None
-            blocks = _merge_consecutive(_drop_redundant_headings(_parse_markdown(text)))
+            blocks = _pack_by_path(
+                _merge_consecutive(_attach_headings(_parse_markdown(text))), self.size
+            )
             for path, _kind, body in blocks:
                 body = body.strip()
                 if not body:
