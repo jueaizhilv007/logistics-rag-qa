@@ -31,6 +31,7 @@ class OpenAICompatibleEmbedding:
         self._dim: int | None = None
         self.log = get_logger("rag_core.embedding")
 
+    # 用于向量化数据库时，将文档内容向量化，分批处理，返回向量化后的向量列表
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         out: list[list[float]] = []
         for i in range(0, len(texts), self.batch_size):
@@ -42,6 +43,7 @@ class OpenAICompatibleEmbedding:
             self._dim = len(out[0])
         return out
 
+    # 用于查询向量数据库时，将查询文本向量化，返回向量化后的向量列表
     def embed_query(self, text: str) -> list[float]:
         resp = self.client.embeddings.create(model=self.model, input=[text])
         vec = resp.data[0].embedding

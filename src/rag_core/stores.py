@@ -48,14 +48,16 @@ class LanceDBStore:
         options: dict[str, Any] | None = None,
     ):
         Path(path).mkdir(parents=True, exist_ok=True)
-        self.db = lancedb.connect(path)
-        self.collection = collection
-        self.metric = metric
+        self.db = lancedb.connect(path) 
+        self.collection = collection # 向量集合名
+        self.metric = metric # 距离度量
         self.options = options or {}
-        self._table = None
-        self._dim: int | None = None
+        self._table = None # 向量表实例
+        self._dim: int | None = None # 向量维度
         self.log = get_logger("rag_core.store")
 
+    # 确保集合存在，若不存在则建表
+    # dim 为 0 时延迟到首次 add 决定
     def ensure_collection(self, dimension: int) -> None:
         """显式建表，已存在则复用。dim 为 0 时延迟到首次 add 决定。"""
         self._dim = dimension if dimension > 0 else None
@@ -67,6 +69,7 @@ class LanceDBStore:
         except Exception:
             return False
 
+    # 确保表存在，若不存在则建表
     def _ensure_table(self):
         if self._table is not None:
             return self._table
@@ -83,12 +86,14 @@ class LanceDBStore:
         self._table = self.db.create_table(self.collection, schema=schema)
         return self._table
 
+    # 写入向量
+    # 若集合不存在，先建表
     def add(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
         if not chunks:
             return
         if self._dim is None:
-            self._dim = len(vectors[0])
-        tbl = self._ensure_table()
+            self._dim = len(vectors[0]) 
+        tbl = self._ensure_table() # 确保表存在，不存在则建表，存在则直接返回
         if tbl is None:
             raise RuntimeError("无法建表：向量维度未知")
         # 落库文本用 c.text 而非 c.embed_text：
