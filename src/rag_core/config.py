@@ -134,6 +134,8 @@ class Config(BaseModel):
 
     config_dir: Path = Path(".")
 
+    # 模型配置，允许任意类型，不检查类型
+    # 键名匹配、递归实例化、类型校验、默认值填充
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def resolve_path(self, raw: str) -> Path:
@@ -165,12 +167,15 @@ def load_config(config_path: str | Path | None = None) -> tuple[Config, Secrets]
     """
     if config_path is None:
         config_path = find_config_file()
+    # 把相对路径统一解析为绝对路径，后续模块不再关心工作目录
     config_path = Path(config_path).resolve()
+    # 提取 config.yaml 所在目录
     config_dir = config_path.parent
 
     with open(config_path, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)
 
+    # 从 .env 与环境变量中读取密钥与 provider 覆盖开关
     secrets = Secrets(_env_file=config_dir / ".env")
 
     # 环境变量优先级高于 YAML，便于临时切换 provider 做对照实验
@@ -195,6 +200,7 @@ def find_config_file(start: Path | None = None) -> Path:
     这是给命令行等入口使用的便利函数，内核不自动调用，
     避免库被 import 时产生文件系统副作用。
     """
+    # 从当前工作目录或给定目录向上逐级查找 config.yaml
     current = (start or Path.cwd()).resolve()
     for candidate in [current, *current.parents]:
         hit = candidate / "config.yaml"

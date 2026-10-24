@@ -122,8 +122,9 @@ class RetrievedChunk:
     各自记录各自的检索过程，互不干扰。
 
     `RetrievedChunk` 不冻结。原因在于 字段是分阶段填进去的 ：
-    1. 入库阶段：Chunk 向量化后进 LanceDB；同时 Chunk 抽出文本生成 TextRecord，建 BM25 倒排索引
-    2. 查询阶段：向量路径在 LanceDB 上 ANN 搜索，返回的命中载荷是 TextRecord，包成 VectorHit
+    1. 索引阶段：Chunk 向量化后进 LanceDB（落库的是 8 个非向量列）；
+               BM25 侧再经iter_text_records 全表回读组装 TextRecord 建倒排索引——此阶段只是数据就绪，RetrievedChunk 尚未产生
+    2. 查询阶段：向量路径在 LanceDB 上 ANN 搜索，返回的命中载荷组装成 TextRecord，包成 VectorHit
     3. 查询阶段：BM25 路径在倒排索引上查询（与 VectorHit 无关，两路独立执行）
     4. 融合阶段：RRF 汇合两路，填 fused_score / final_rank
     5. 重排阶段：cross-encoder（重排器） 打分填 rerank_score，可能重写 final_rank
@@ -142,7 +143,7 @@ class RetrievedChunk:
 class QAResult:
     """问答结果，供命令行、HTTP 接口与界面消费。
     
-    `trategy` ：答案自带的“身份证” 。
+    `strategy` ：答案自带的“身份证” 。
     每条`QAResult` 自己声明“我是哪套配置产出来的”（如`fixed+vector` 或`hierarchical+hybrid+rerank` ）。
     这样评测结果落盘之后，哪怕文件混在一起，仍然能按 strategy 分组归因——不需要任何外部上下文。
     而且它由`describe()` 从配置实时推导，配置改了标签自动跟着变，杜绝“标签写着 hybrid、实际跑的是 vector”这类实验事故。
@@ -156,7 +157,7 @@ class QAResult:
     question: str
     answer: str
     retrieved: list[RetrievedChunk] = field(default_factory=list)
-    cited_indices: list[int] = field(default_factory=list)
+    cited_indices: list[int] = field(default_factory=list) # 被引用的片段排名，从 1 开始
     refused: bool = False
     elapsed_ms: int = 0
     strategy: str = ""
