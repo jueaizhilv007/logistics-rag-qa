@@ -30,7 +30,7 @@ def _split_keep(text: str, sep: str) -> list[str]:
     if sep == "":
         return list(text)
     parts = text.split(sep)
-    return [part + sep for part in parts[:-1]] + [parts[-1]]
+    return [part + sep for part in parts[:-1]] + [parts[-1]] # 最后一个 part 不需要加分隔符
 
 
 def _hard_split(text: str, size: int) -> list[str]:
@@ -40,42 +40,42 @@ def _hard_split(text: str, size: int) -> list[str]:
 
 def _split_recursive(text: str, size: int, sep_idx: int = 0) -> list[str]:
     """逐级回退分隔符，产出长度不超过 size 的单元。"""
-    if len(text) <= size:
+    if len(text) <= size: # 已经够小了，直接返回
         return [text]
-    if sep_idx >= len(_SEPARATORS):
+    if sep_idx >= len(_SEPARATORS): # 所有分隔符都试过了，按字符硬切
         return _hard_split(text, size)
     sep = _SEPARATORS[sep_idx]
     units: list[str] = []
-    for part in _split_keep(text, sep):
+    for part in _split_keep(text, sep): # 按当前分隔符切
         if not part:
             continue
         if len(part) > size:
-            units.extend(_split_recursive(part, size, sep_idx + 1))
+            units.extend(_split_recursive(part, size, sep_idx + 1)) # 还太大 → 递归切分
         else:
-            units.append(part)
+            units.append(part) # 够小 → 收编
     return units
 
 
 def _merge_units(units: list[str], size: int, overlap: int) -> list[str]:
     """贪心合并单元，相邻块之间保留 overlap 个字符的重叠。"""
     chunks: list[str] = []
-    cur = ""
+    cur = ""    # 当前正在累积的 chunk
     for unit in units:
-        if len(unit) > size:
+        if len(unit) > size: # 单元本身就超 size → 异常（理论上不会发生）
             if cur:
-                chunks.append(cur)
+                chunks.append(cur)  # 当前累积的 chunk 记为一块
                 cur = ""
-            chunks.append(unit)
+            chunks.append(unit)  # 单元单独记为一块
             continue
-        if len(cur) + len(unit) <= size:
-            cur += unit
+        if len(cur) + len(unit) <= size: # 放得下，直接累积当前单元
+            cur += unit  # 累积当前单元
             continue
-        if cur:
-            chunks.append(cur)
-            cur = (cur[-overlap:] if 0 < overlap < len(cur) else "") + unit
-        else:
+        if cur: # 放不下，落盘旧块，带 overlap 重启
+            chunks.append(cur)  # 当前累积的 chunk 记为一块
+            cur = (cur[-overlap:] if 0 < overlap < len(cur) else "") + unit # 新 cur 长度 = overlap + len(unit)，size可能会超size
+        else:   # 当前累积的 chunk 为空，直接用当前单元初始化
             cur = unit
-    if cur:
+    if cur: # 最后一个 chunk 未落盘，直接记为一块
         chunks.append(cur)
     return [c.strip() for c in chunks if c.strip()]
 
@@ -274,6 +274,8 @@ class FixedSplitter:
             text = page.text
             if not text.strip():
                 continue
+            # 按 size 拆分
+            # 合并相邻块
             pieces = _merge_units(_split_recursive(text, self.size), self.size, self.overlap)
             for piece in pieces:
                 chunks.append(

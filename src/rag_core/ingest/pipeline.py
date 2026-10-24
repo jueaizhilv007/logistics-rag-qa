@@ -53,6 +53,7 @@ class IngestPipeline:
         loader = self._loaders.get(path.suffix.lower())
         if loader is None:
             return (
+                # 不支持的文件类型 → 跳过
                 IngestResult(source=str(path), status="skipped", reason=f"unsupported {path.suffix}"),
                 [],
                 None,
@@ -61,6 +62,7 @@ class IngestPipeline:
             doc = loader.load(path)
         except Exception as exc:  # noqa: BLE001
             return (
+                # 解析抛异常 → 失败
                 IngestResult(source=str(path), status="error", reason=f"parse: {exc}"),
                 [],
                 None,
@@ -68,19 +70,23 @@ class IngestPipeline:
 
         if self.store.has_doc(doc.doc_id):
             return (
+                # 已索引 → 跳过（幂等去重）
                 IngestResult(source=str(path), status="skipped", doc_id=doc.doc_id, reason="already indexed"),
                 [],
                 doc,
             )
 
+        # 切分 + 过滤空块【c.text.strip()】
         chunks = [c for c in self.splitter.split(doc) if c.text.strip()]
         if not chunks:
             return (
+                # 切分后为空（空文档） → 跳过
                 IngestResult(source=str(path), status="skipped", doc_id=doc.doc_id, reason="empty after split"),
                 [],
                 doc,
             )
         return (
+            # 切分后非空 → 入库
             IngestResult(source=str(path), status="indexed", doc_id=doc.doc_id, chunks=len(chunks)),
             chunks,
             doc,
@@ -92,7 +98,9 @@ class IngestPipeline:
             return result
 
         try:
+            # 向量化
             vectors = self.embedding.embed_documents([c.embed_text for c in chunks])
+            # 写入向量存储
             self.store.add(chunks, vectors)
         except Exception as exc:  # noqa: BLE001
             return IngestResult(
