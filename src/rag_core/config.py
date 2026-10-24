@@ -83,10 +83,14 @@ class ChunkingCfg(BaseModel):
 
 
 class HybridCfg(BaseModel):
-    """混合检索配置。"""
+    """混合检索配置。
+
+    刻意没有 weights 字段：融合走 RRF，RRF 只吃排名不吃分数，
+    两路之间没有可配的权重。留着这个字段会让人以为改权重能调效果，
+    而实际上它不参与任何计算。
+    """
     bm25_k: int = 10
     vector_k: int = 10
-    weights: list[float] = Field(default_factory=lambda: [0.5, 0.5])
     rrf_k: int = 60
 
 

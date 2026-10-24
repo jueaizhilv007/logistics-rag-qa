@@ -59,7 +59,6 @@ retrieval:
   hybrid:
     bm25_k: 10
     vector_k: 10
-    weights: [0.5, 0.5]
     rrf_k: 60
   rerank:
     enabled: false

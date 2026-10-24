@@ -9,14 +9,16 @@ from __future__ import annotations
 
 from typing import Literal
 
-# 注册类别。reranker 是新增项：原实现没有重排层，
-# 而它正是对照实验 E4 要验证的变量，必须留出身位。
+# 注册类别。reranker 与 retriever 是新增项：
+# 原实现没有独立的检索层与重排层，
+# 而它们正是对照实验 E3 / E4 要验证的变量，必须留出身位。
 Kind = Literal[
     "embedding",
     "llm",
     "vector_store",
     "splitter",
     "loader",
+    "retriever",
     "reranker",
 ]
 

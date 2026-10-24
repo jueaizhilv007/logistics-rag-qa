@@ -91,6 +91,15 @@ class BaseVectorStore(Protocol):
 @runtime_checkable
 class BaseRetriever(Protocol):
     """检索器。"""
+    def describe(self) -> str:
+        """自述策略标签，形如 vector / hybrid / hybrid+rerank。
+
+        标签是 E1-E4 归因的唯一依据，因此必须由组件自述而不是由配置推导：
+        配置里开了 rerank 却没有注入重排器时，
+        标签若仍声称「有重排」，整组实验数据就不可信。
+        """
+        ...
+
     def retrieve(self, query: str, k: int | None = None) -> list[RetrievedChunk]: ...
 
 

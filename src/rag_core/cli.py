@@ -118,5 +118,62 @@ def ingest(
     console.print(summary)
 
 
+@app.command()
+def search(
+    query: str = typer.Argument(..., help="检索语句"),
+    top_k: Optional[int] = typer.Option(
+        None, "--top-k", "-k", help="返回条数，默认取配置 retrieval.top_k"
+    ),
+    mode: Optional[str] = typer.Option(
+        None, "--mode", "-m", help="临时覆盖 retrieval.mode：vector / hybrid"
+    ),
+    config: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="config.yaml 路径，默认向上查找"
+    ),
+) -> None:
+    """在索引中检索，打印三路排名、来源与正文片段。
+
+    三路排名并排显示是为了让「这条结果为什么排第一」可以直接看出来：
+    只在向量路出现、只在 BM25 路出现、两路都出现，三种情况的处置完全不同。
+    """
+    _ensure_plugins()
+    from rag_core.container import RagCore
+
+    core, cfg, _secrets = RagCore.from_config(
+        _resolve_config(config), retrieval_mode=mode
+    )
+    assert core.retriever is not None  # from_config 路径一定装配
+
+    console.print(
+        f"[dim]策略标签 {core.describe()} · 模式 {cfg.retrieval.mode} · "
+        f"索引 {core.store.count()} 条[/dim]"
+    )
+    results = core.retriever.retrieve(query, top_k)
+    if not results:
+        console.print("[yellow]没有命中。若索引为空，先执行 rag-qa ingest[/yellow]")
+        raise typer.Exit(0)
+
+    table = Table(title=f"检索结果 · {query}")
+    table.add_column("#", justify="right")
+    table.add_column("vec", justify="right")
+    table.add_column("bm25", justify="right")
+    table.add_column("fused", justify="right")
+    table.add_column("来源")
+    table.add_column("标题链")
+    table.add_column("正文", overflow="fold")
+
+    for hit in results:
+        table.add_row(
+            str(hit.final_rank),
+            "-" if hit.vector_rank is None else str(hit.vector_rank),
+            "-" if hit.bm25_rank is None else str(hit.bm25_rank),
+            f"{hit.fused_score:.4f}",
+            Path(hit.chunk.source).name,
+            hit.chunk.heading_path or "-",
+            hit.chunk.text[:100].replace("\n", " "),
+        )
+    console.print(table)
+
+
 if __name__ == "__main__":
     app()

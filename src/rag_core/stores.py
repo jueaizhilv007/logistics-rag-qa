@@ -203,9 +203,56 @@ class LanceDBStore:
         except Exception:
             # 小数据量时 optimize 可能无事可做，忽略
             pass
+        self.create_ann_index()
+
+    def create_ann_index(self) -> bool:
+        """建立 ANN 索引。
+
+        LanceDB 对未建索引的表走暴力搜索。数据量小时暴力搜索反而更好：
+        ANN 是近似检索，会漏召回，而小表上暴力检索既够快又精确。
+        因此设定行数门槛，未达门槛时不建。
+
+        门槛默认 256：IVF 类索引要用 k-means 训练分区中心，
+        训练样本数接近甚至少于分区数时聚类失去意义，检索质量会明显下降。
+        """
+        tbl = self._ensure_table()
+        if tbl is None:
+            return False
+        rows = tbl.count_rows()
+        min_rows = int(self.options.get("ann_min_rows", 256))
+        if rows < min_rows:
+            self.log.info(
+                "行数 %d 未达 ANN 门槛 %d，保持暴力搜索：小表上它更快且无召回损失",
+                rows,
+                min_rows,
+            )
+            return False
+        dim = self._dim or 0
+        if dim <= 0:
+            return False
+        # 分区数取行数的平方根，是 IVF 的常用经验值
+        num_partitions = max(2, int(rows**0.5))
+        # 每个向量切 16 段做乘积量化，压缩率与精度的常见折中
+        num_sub_vectors = max(2, dim // 16)
+        try:
+            tbl.create_index(
+                metric=self.metric,
+                num_partitions=num_partitions,
+                num_sub_vectors=num_sub_vectors,
+            )
+        except Exception as exc:
+            self.log.warning("建立 ANN 索引失败：%s", exc)
+            return False
+        self.log.info("已建立 ANN 索引：%d 行 / %d 分区", rows, num_partitions)
+        return True
 
     def clear(self) -> None:
         """删除整个 collection，用于对照实验切换策略后重建索引。"""
+        # 表本来就不存在时不算失败：CLI 的 --drop 在首次入库时也会走到这里，
+        # 此时报一条 warning 会让使用者以为出了事
+        if not self._table_exists():
+            self._table = None
+            return
         try:
             self.db.drop_table(self.collection)
         except Exception as exc:
