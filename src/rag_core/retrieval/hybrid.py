@@ -59,8 +59,10 @@ class HybridRetriever:
         # 候选数若等于最终条数，重排无事可做
         self.rerank_candidates = rerank_candidates
         self.log = get_logger("rag_core.retrieval")
+        # 懒加载：构造时不建索引，首次查询才建
         self._bm25: BM25Index | None = None
-        self._indexed_rows = 0
+        # 建索引那一刻的语料行数，用于变化检测
+        self._indexed_docs: set[str] = set()
 
     def describe(self) -> str:
         """自述策略。标签由实际装配决定，不看配置——
@@ -74,15 +76,20 @@ class HybridRetriever:
     def _ensure_bm25(self) -> None:
         """BM25 索引是构建时刻的快照，语料变了必须重建。
 
-        用行数变化作为重建判据而不是每次重建：
-        jieba 分词整张表是本次检索最贵的一步，
+        判据是 doc_id 集合而不是行数。行数会说谎：
+        删一份文档再加一份，行数可以不变而内容已变，
+        此时不重建的话，索引里残留的已删文档片段会被当成正常结果返回——
+        那是「库里已经不存在的文本」，比少召回几条严重得多。
+        doc_id 是内容哈希，集合不变即内容不变，判据与要判定的事同一。
+
+        只在集合变化时才重建：jieba 分词整张表是本次检索最贵的一步，
         每次查询都做会让交互延迟不可接受。
         """
-        rows = self.store.count()
-        if self._bm25 is not None and self._indexed_rows == rows:
+        doc_ids = self.store.doc_ids()
+        if self._bm25 is not None and self._indexed_docs == doc_ids:
             return
         self._bm25 = BM25Index.from_store(self.store)
-        self._indexed_rows = rows
+        self._indexed_docs = doc_ids
         self.log.info("BM25 索引已构建：%d 条文本", self._bm25.size)
 
     def retrieve(self, query: str, k: int | None = None) -> list[RetrievedChunk]:

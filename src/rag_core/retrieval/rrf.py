@@ -40,6 +40,7 @@ def rrf_fuse(
     并列时按 key 字典序升序。这一条不是打磨细节：
     评测脚本要反复跑同一批 query，排名不稳定会让实验结果无法复现。
     """
+    # 初始化融合分字典：key 是 chunk_id（格式 {doc_id}_{chunk_index}），value 是 RRF 分数
     fused: dict[str, float] = {}
     for ranking in rankings:
         for rank, key in enumerate(ranking, start=1):

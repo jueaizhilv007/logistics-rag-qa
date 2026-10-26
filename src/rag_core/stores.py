@@ -35,6 +35,19 @@ _FIELDS = [
     pa.field("chunk_index", pa.int32()),
 ]
 
+# 建 BM25 索引时只扫描这几列。向量列刻意不在其中：
+# 为建一个稀疏索引把整个向量库读进内存，是最容易踩也最难察觉的性能坑
+_TEXT_COLUMNS = [
+    "text",
+    "doc_id",
+    "source",
+    "doc_title",
+    "heading_path",
+    "file_type",
+    "page",
+    "chunk_index",
+]
+
 
 @register("vector_store", "lancedb")
 class LanceDBStore:
@@ -165,25 +178,18 @@ class LanceDBStore:
         """按批产出全部 TextRecord，向量列被裁剪，不全量入内存。
 
         BM25 建索引走这个路径，因此全表文本必须读完，但向量数据是另一回事。
+
+        走 pylance 的 scanner 而不是 LanceDB 的 to_arrow()：
+        后者不接收 columns 参数，会把向量列一起读进内存，
+        那样「为建稀疏索引不读向量」的设计就落空了。
         """
         tbl = self._ensure_table()
         if tbl is None:
             return
-        cols = [
-            "text", "doc_id", "source", "doc_title",
-            "heading_path", "file_type", "page", "chunk_index",
-        ]
-        try:
-            batches = tbl.to_batches(columns=cols)
-        except (TypeError, AttributeError):
-            batches = [tbl.to_arrow().select(cols).to_batches()[0]]
-        for batch in batches:
-            if hasattr(batch, "to_pylist"):
-                for row in batch.to_pylist():
-                    yield _record_from_row(row)
-            else:
-                for row in batch:  # type: ignore[assignment]
-                    yield _record_from_row(dict(row))
+        scanner = tbl.to_lance().scanner(columns=_TEXT_COLUMNS)
+        for batch in scanner.to_batches():
+            for row in batch.to_pylist():
+                yield _record_from_row(row)
 
     def count(self) -> int:
         tbl = self._ensure_table()
@@ -193,6 +199,14 @@ class LanceDBStore:
             return tbl.count_rows()
         except Exception:
             return 0
+
+    def doc_ids(self) -> set[str]:
+        """只扫描 doc_id 一列，不碰文本与向量。"""
+        tbl = self._ensure_table()
+        if tbl is None:
+            return set()
+        table = tbl.to_lance().scanner(columns=["doc_id"]).to_table()
+        return set(table.column("doc_id").to_pylist())
 
     def optimize(self) -> None:
         tbl = self._ensure_table()

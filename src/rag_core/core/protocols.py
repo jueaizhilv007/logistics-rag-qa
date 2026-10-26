@@ -77,6 +77,19 @@ class BaseVectorStore(Protocol):
 
     def count(self) -> int: ...
 
+    def doc_ids(self) -> set[str]:
+        """当前库内全部 doc_id。
+
+        稀疏索引（BM25）用它判断数据是否变化。不能用行数代替：
+        删一份文档再加一份，行数可以不变但内容已经变了，
+        按行数判断会漏重建，索引里残留已删除文档的片段，
+        检索于是会把库里已不存在的文本当成结果返回。
+
+        doc_id 是内容哈希，因此「集合不变」等价于「内容不变」，
+        这正是要判定的那件事本身，而不是它的近似。
+        """
+        ...
+
     def optimize(self) -> None: ...
 
     def clear(self) -> None:
