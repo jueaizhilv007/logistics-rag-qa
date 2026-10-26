@@ -61,7 +61,7 @@ class HybridRetriever:
         self.log = get_logger("rag_core.retrieval")
         # 懒加载：构造时不建索引，首次查询才建
         self._bm25: BM25Index | None = None
-        # 建索引那一刻的语料行数，用于变化检测
+        # 建索引那一刻的语料 doc_id 集合，用于变化检测
         self._indexed_docs: set[str] = set()
 
     def describe(self) -> str:
@@ -126,6 +126,7 @@ class HybridRetriever:
         candidate_limit = (
             max(limit, self.rerank_candidates) if self.reranker is not None else limit
         )
+        # 合并两路召回结果，用 RRF 融合
         fused = rrf_fuse([list(vec_rank), list(bm_rank)], k=self.rrf_k)
 
         results: list[RetrievedChunk] = []

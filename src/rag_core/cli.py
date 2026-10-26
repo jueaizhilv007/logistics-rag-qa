@@ -11,6 +11,7 @@ from typing import Optional
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 app = typer.Typer(
@@ -171,6 +172,65 @@ def search(
             Path(hit.chunk.source).name,
             hit.chunk.heading_path or "-",
             hit.chunk.text[:100].replace("\n", " "),
+        )
+    console.print(table)
+
+
+@app.command()
+def ask(
+    question: str = typer.Argument(..., help="要问的问题"),
+    top_k: Optional[int] = typer.Option(
+        None, "--top-k", "-k", help="取回条数，默认取配置 retrieval.top_k"
+    ),
+    mode: Optional[str] = typer.Option(
+        None, "--mode", "-m", help="临时覆盖 retrieval.mode：vector / hybrid"
+    ),
+    config: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="config.yaml 路径，默认向上查找"
+    ),
+) -> None:
+    """检索并生成答案，打印引用编号与来源。
+
+    拒答时照样打印检索到的片段。证据面板要展示的是
+    「我找到了什么、但不足以回答」——这比干巴巴一句「不知道」有用得多，
+    客服人员能据此判断是转人工还是换个问法。
+    """
+    _ensure_plugins()
+    from rag_core.container import RagCore
+
+    core, cfg, _secrets = RagCore.from_config(
+        _resolve_config(config), retrieval_mode=mode
+    )
+    result = core.ask(question, top_k)
+
+    console.print(
+        f"[dim]策略 {result.strategy} · 模式 {cfg.retrieval.mode} · "
+        f"{len(result.retrieved)} 条资料 · {result.elapsed_ms} ms[/dim]"
+    )
+
+    title = "拒答" if result.refused else "答案"
+    style = "yellow" if result.refused else "green"
+    console.print(Panel(result.answer, title=title, border_style=style))
+
+    if not result.retrieved:
+        console.print("[yellow]未检索到任何片段。若索引为空，先执行 rag-qa ingest[/yellow]")
+        raise typer.Exit(0)
+
+    cited_set = set(result.cited_indices)
+    table = Table(title=f"证据 · 引用 {result.cited_indices or '（无）'}")
+    table.add_column("引用", justify="center")
+    table.add_column("#", justify="right")
+    table.add_column("来源")
+    table.add_column("标题链")
+    table.add_column("正文", overflow="fold")
+
+    for hit in result.retrieved:
+        table.add_row(
+            "✓" if hit.final_rank in cited_set else "",
+            str(hit.final_rank),
+            Path(hit.chunk.source).name,
+            hit.chunk.heading_path or "-",
+            hit.chunk.text[:120].replace("\n", " "),
         )
     console.print(table)
 

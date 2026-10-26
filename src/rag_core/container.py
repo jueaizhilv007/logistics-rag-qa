@@ -18,7 +18,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from rag_core.config import Config, RetrievalCfg, Secrets, load_config
+from rag_core.config import Config, GenerateCfg, RetrievalCfg, Secrets, load_config
+from rag_core.core.contracts import QAResult
 from rag_core.core.logging import get_logger
 from rag_core.core.protocols import (
     BaseEmbedding,
@@ -30,6 +31,7 @@ from rag_core.core.protocols import (
 )
 
 if TYPE_CHECKING:
+    from rag_core.generate.pipeline import GeneratePipeline
     from rag_core.ingest.pipeline import IngestPipeline
 
 
@@ -47,6 +49,10 @@ class RagCore:
         # 内核不再持有 retrieval / generate 配置——
         # 配置与组件并存时，两者不一致会静默产出错误标签。
         retriever: Optional[BaseRetriever] = None,
+        # 问答流水线：配置驱动路径下由 from_config 装配。显式注入路径不传时，
+        # ask() 用 GenerateCfg 的字段默认值就地构造一个——
+        # 拒答话术因此始终只有一个来源（配置类字段），不会散落到代码里
+        generator: Optional["GeneratePipeline"] = None,
         chunk_strategy: str = "fixed",
         # 入库流水线：配置驱动路径下由 from_config 装配，显式注入可自行传入
         ingest: Optional["IngestPipeline"] = None,
@@ -59,6 +65,7 @@ class RagCore:
         self.llm = llm
         self.splitter = splitter
         self.retriever = retriever
+        self.generator = generator
         self.chunk_strategy = chunk_strategy
         self.ingest = ingest
         self.retrieval = retrieval
@@ -164,6 +171,17 @@ class RagCore:
             store=store,
         )
 
+        # 生成流水线。延迟导入：generate 拉起 tiktoken，
+        # 显式注入路径不该为一次问答付这个代价
+        from rag_core.generate.pipeline import GeneratePipeline
+
+        generator = GeneratePipeline(
+            llm=llm,
+            retriever=retriever,
+            empty_answer=cfg.generate.empty_answer,
+            max_context_tokens=cfg.generate.max_context_tokens,
+        )
+
         # 内核实例
         core = cls(
             embedding=embedding,
@@ -171,6 +189,7 @@ class RagCore:
             llm=llm,
             splitter=splitter,
             retriever=retriever,
+            generator=generator,
             chunk_strategy=cfg.chunking.strategy,
             ingest=ingest,
             retrieval=cfg.retrieval,
@@ -191,3 +210,33 @@ class RagCore:
         if self.retriever is not None:
             bits.append(self.retriever.describe())
         return "+".join(bits)
+
+    def ask(self, question: str, k: int | None = None) -> QAResult:
+        """回答一个问题，返回带引用编号与拒答标志的结果。
+
+        strategy 在这里补而不是让流水线自己填：流水线只认得检索器，
+        说不出切片策略那一半，而标签必须完整（fixed+vector 而不是只有 vector）
+        才能在评测结果里用来分组归因。
+        """
+        if self.generator is None and self.retriever is None:
+            raise ValueError(
+                "未装配检索器，无法问答。显式注入路径请传入 retriever 或 generator"
+            )
+
+        gen = self.generator
+        if gen is None:
+            # 就地构造时用的是配置类的字段默认值，不是另写一份话术，
+            # 因此拒答文案的定义点始终只有 GenerateCfg.empty_answer 一处
+            from rag_core.generate.pipeline import GeneratePipeline
+
+            defaults = GenerateCfg()
+            gen = GeneratePipeline(
+                llm=self.llm,
+                retriever=self.retriever,
+                empty_answer=defaults.empty_answer,
+                max_context_tokens=defaults.max_context_tokens,
+            )
+
+        result = gen.ask(question, k)
+        result.strategy = self.describe()
+        return result
