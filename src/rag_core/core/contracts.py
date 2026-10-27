@@ -196,6 +196,58 @@ class QAResult:
         return [by_rank[i] for i in self.cited_indices if i in by_rank]
 
 
+StreamEventType = Literal["sources", "delta", "done", "error"]
+
+
+@dataclass(frozen=True)
+class DoneInfo:
+    """`done` 事件的载荷：结果摘要，刻意不含片段全文。
+
+    片段在 `sources` 事件里已经发过一次，`done` 再带一遍是纯冗余——
+    而它真正要补的是流式过程中才算得出来的东西：引用编号、拒答原因、耗时。
+    这三项都依赖完整答案（引用要等整段文本收齐才能解析），
+    所以只能放在流末尾，不可能提前。
+    """
+
+    cited_indices: list[int] = field(default_factory=list)
+    refused: bool = False
+    refusal_reason: RefusalReason = ""
+    elapsed_ms: int = 0
+    strategy: str = ""
+
+
+@dataclass(frozen=True)
+class StreamEvent:
+    """流式生成过程中的一个事件。
+
+    ### 为什么事件由内核定义，而不是接入层自己组装
+
+    引用解析与拒答判定必须发生在内核：它们依赖 `empty_answer` 配置、
+    依赖编号收敛到实际给出的资料范围——接入层拿不到这些，
+    自己做只能重新实现一遍，且必然漂移。
+    所以内核把过程切成事件往外吐，接入层只负责把事件名映射成 SSE 帧。
+
+    ### 为什么必须有 `error` 这一型
+
+    LLM 报错往往发生在流的中途：前面几十个 token 已经出去了，
+    此时若直接让异常穿透，HTTP 层只会把连接断掉，
+    前端看到的是一段戛然而止的文字——它和「答案说完了」在界面上无法区分。
+
+    半截断流比报错更危险：用户会把没说完的话当成完整答案。
+    因此中途失败必须显式发 `error`，让前端能标红并重开可重试状态。
+
+    ### 四类事件的顺序
+
+    `sources` → 若干 `delta` → `done` 或 `error`。
+    `sources` 在最前：检索先于生成完成，证据面板不必等答案。
+    """
+
+    type: StreamEventType
+    text: str = ""  # delta 的增量文本；error 的错误消息
+    hits: list[RetrievedChunk] = field(default_factory=list)  # sources 的命中片段
+    done: Optional[DoneInfo] = None  # done 的结果摘要
+
+
 @dataclass
 class IngestResult:
     """单个文档的入库结果。

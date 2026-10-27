@@ -35,11 +35,17 @@ from __future__ import annotations
 import re
 import time
 from functools import lru_cache
-from typing import Optional
+from typing import Iterator, Optional
 
 import tiktoken
 
-from rag_core.core.contracts import QAResult, RefusalReason, RetrievedChunk
+from rag_core.core.contracts import (
+    DoneInfo,
+    QAResult,
+    RefusalReason,
+    RetrievedChunk,
+    StreamEvent,
+)
 from rag_core.core.logging import get_logger
 from rag_core.core.protocols import BaseLLM, BaseRetriever
 from rag_core.generate.prompt import build_context, build_messages
@@ -167,6 +173,71 @@ class GeneratePipeline:
             refused=refused,
             refusal_reason=reason,
             elapsed_ms=_elapsed_ms(started),
+        )
+
+    def stream(self, question: str, k: Optional[int] = None) -> Iterator[StreamEvent]:
+        """流式回答，逐个事件产出。
+
+        与 `ask()` 共用同一套检索、预算截断、引用解析与拒答判定，
+        差别只在生成这一环：一次拿回整段，还是逐块吐出。
+
+        共用不是偷懒。两条路径若各写一套判定，
+        界面上流式看到的答案与评测里非流式跑出的指标会对不上，
+        而这种不一致没有任何信号能暴露——
+        用户看到「引用了 [2]」，评测却记「这道题误引」，两边都看不出对方错了。
+
+        `sources` 在第一个 `delta` 之前发出：检索先于生成完成，
+        证据面板不必等答案。
+        """
+        started = time.perf_counter()
+        hits = self.retriever.retrieve(question, k or self.top_k)
+
+        if not hits:
+            self.log.info("检索为空，拒答：%s", question)
+            yield StreamEvent(type="sources", hits=[])
+            yield StreamEvent(type="delta", text=self.empty_answer)
+            yield StreamEvent(
+                type="done",
+                done=DoneInfo(
+                    refused=True,
+                    refusal_reason="no_hits",
+                    elapsed_ms=_elapsed_ms(started),
+                ),
+            )
+            return
+
+        kept = select_within_budget(hits, self.max_context_tokens)
+        yield StreamEvent(type="sources", hits=hits)
+
+        messages = build_messages(question, build_context(kept), self.empty_answer)
+        pieces: list[str] = []
+        try:
+            for delta in self.llm.stream_chat(messages):
+                pieces.append(delta)
+                yield StreamEvent(type="delta", text=delta)
+        except Exception as exc:
+            # 此时流已经吐出去一部分。让异常直接穿透只会断掉连接，
+            # 前端拿到一段戛然而止的文字，而它在界面上与「答案说完了」无法区分。
+            # 半截断比报错更危险：用户会把没说完的话当成完整答案。
+            self.log.error("LLM 流式生成中断：%s", exc)
+            yield StreamEvent(type="error", text=str(exc))
+            return
+
+        answer = "".join(pieces)
+        cited = self._resolve_citations(answer, kept)
+        reason = self._classify_refusal(answer, cited)
+        self.log.info(
+            "检索 %d 条，送进 prompt %d 条，引用 %s，拒答=%s（%s）",
+            len(hits), len(kept), cited, bool(reason), reason or "-",
+        )
+        yield StreamEvent(
+            type="done",
+            done=DoneInfo(
+                cited_indices=cited,
+                refused=bool(reason),
+                refusal_reason=reason,
+                elapsed_ms=_elapsed_ms(started),
+            ),
         )
 
     def _resolve_citations(

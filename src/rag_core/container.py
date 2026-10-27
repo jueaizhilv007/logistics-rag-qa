@@ -15,11 +15,12 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Iterator, Optional
 
 from rag_core.config import Config, GenerateCfg, RetrievalCfg, Secrets, load_config
-from rag_core.core.contracts import QAResult
+from rag_core.core.contracts import QAResult, StreamEvent
 from rag_core.core.logging import get_logger
 from rag_core.core.protocols import (
     BaseEmbedding,
@@ -211,6 +212,29 @@ class RagCore:
             bits.append(self.retriever.describe())
         return "+".join(bits)
 
+    def _resolve_generator(self) -> "GeneratePipeline":
+        """取到可用的生成流水线。
+
+        显式注入路径不传 generator 时就地构造一个，用的是配置类的字段默认值，
+        不是另写一份话术——因此拒答文案的定义点始终只有 GenerateCfg.empty_answer 一处。
+        """
+        if self.generator is not None:
+            return self.generator
+        if self.retriever is None:
+            raise ValueError(
+                "未装配检索器，无法问答。显式注入路径请传入 retriever 或 generator"
+            )
+        # 延迟导入：generate 拉起 tiktoken，显式注入路径不该为一次问答付这个代价
+        from rag_core.generate.pipeline import GeneratePipeline
+
+        defaults = GenerateCfg()
+        return GeneratePipeline(
+            llm=self.llm,
+            retriever=self.retriever,
+            empty_answer=defaults.empty_answer,
+            max_context_tokens=defaults.max_context_tokens,
+        )
+
     def ask(self, question: str, k: int | None = None) -> QAResult:
         """回答一个问题，返回带引用编号与拒答标志的结果。
 
@@ -218,25 +242,20 @@ class RagCore:
         说不出切片策略那一半，而标签必须完整（fixed+vector 而不是只有 vector）
         才能在评测结果里用来分组归因。
         """
-        if self.generator is None and self.retriever is None:
-            raise ValueError(
-                "未装配检索器，无法问答。显式注入路径请传入 retriever 或 generator"
-            )
-
-        gen = self.generator
-        if gen is None:
-            # 就地构造时用的是配置类的字段默认值，不是另写一份话术，
-            # 因此拒答文案的定义点始终只有 GenerateCfg.empty_answer 一处
-            from rag_core.generate.pipeline import GeneratePipeline
-
-            defaults = GenerateCfg()
-            gen = GeneratePipeline(
-                llm=self.llm,
-                retriever=self.retriever,
-                empty_answer=defaults.empty_answer,
-                max_context_tokens=defaults.max_context_tokens,
-            )
-
-        result = gen.ask(question, k)
+        result = self._resolve_generator().ask(question, k)
         result.strategy = self.describe()
         return result
+
+    def stream(self, question: str, k: int | None = None) -> Iterator[StreamEvent]:
+        """流式问答，逐个事件产出。
+
+        strategy 同样在末尾补，理由与 ask() 一致。
+        事件与摘要都是冻结数据类，因此用 replace 生成新实例而不是就地改字段：
+        冻结的意义就在于让「谁改了它」在数据流里可追溯，
+        就地改会让下游分不清这个 strategy 是流水线填的还是装配根补的。
+        """
+        for event in self._resolve_generator().stream(question, k):
+            if event.type == "done" and event.done is not None:
+                yield replace(event, done=replace(event.done, strategy=self.describe()))
+            else:
+                yield event
