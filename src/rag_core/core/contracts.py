@@ -139,6 +139,12 @@ class RetrievedChunk:
     rerank_score: Optional[float] = None # 重排序分数，若未命中则为 None
 
 
+# 拒答原因。空串表示未拒答。
+# 封闭集合而非开放集合：消费方按这三种取值穷举渲染分支，新实现不应发明第四种，
+# 判断标准与 IngestResult.status 一致（那边是开放/封闭取舍的另一半，不要统一口径）。
+RefusalReason = Literal["", "no_hits", "no_citation", "refusal_phrase"]
+
+
 @dataclass
 class QAResult:
     """问答结果，供命令行、HTTP 接口与界面消费。
@@ -153,12 +159,33 @@ class QAResult:
     所以`refused=True` 时`retrieved` 可能非空。
     这就是为什么界面判断“要不要渲染证据面板”应该看`retrieved` 而不是`refused` ——证据面板展示的是“我找到了什么、但不足以回答”，
     这本身就是有价值的透明度。拒答话术来自配置`generate.empty_answer` ，不硬编码在代码里。
+
+    ### `answer` 在拒答时的可信度不一致，靠 `refusal_reason` 区分
+
+    `refused=True` 下 `answer` 有两种截然不同的东西：
+
+    - `no_hits` ：检索为空，没调 LLM，`answer` 就是配置话术，可信
+    - `no_citation` ：有资料但模型一个编号都没引，`answer` 是模型没有出处的自由发挥，不可信
+    - `refusal_phrase` ：模型照话术作答，`answer` 即话术，可信
+
+    不区分的话，渲染方只能靠注释约定「拒答时别信 `answer` 」，
+    而第 2 种情况一旦被当成答案展示，界面上看不出任何异常——
+    这正是 RAG 最致命的失败模式。区分之后渲染契约按原因分三种：
+
+    - `no_hits` ：展示话术，`retrieved` 为空，没有证据面板可展示
+    - `refusal_phrase` ：展示话术与证据面板
+    - `no_citation` ：展示话术、证据面板，外加把 `answer` 降级成「未获资料支持的参考」
+
+    第 3 种不能简单隐藏：那份 `answer` 虽然不可信，却是唯一能看出模型差在哪的线索
+    （答非所问，还是答对了只是没标引用），隐藏它等于断掉排查路径。
+    所以它换个身份出现，而不是不出现。
     """
     question: str
     answer: str
     retrieved: list[RetrievedChunk] = field(default_factory=list)
     cited_indices: list[int] = field(default_factory=list) # 被引用的片段排名，从 1 开始
     refused: bool = False
+    refusal_reason: RefusalReason = ""
     elapsed_ms: int = 0
     strategy: str = ""
 

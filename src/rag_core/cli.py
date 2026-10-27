@@ -194,6 +194,11 @@ def ask(
     拒答时照样打印检索到的片段。证据面板要展示的是
     「我找到了什么、但不足以回答」——这比干巴巴一句「不知道」有用得多，
     客服人员能据此判断是转人工还是换个问法。
+
+    拒答时正文渲染配置话术而非 `result.answer`：`no_citation` 下那份 `answer`
+    是模型没有出处的自由发挥，当答案渲染等于放行不可信内容。
+    但它同时是唯一能看出「模型差在哪」的线索，所以额外降级展示成红框参考区——
+    不当答案，也不隐藏。具体走哪个分支由 `QAResult.refusal_reason` 判定。
     """
     _ensure_plugins()
     from rag_core.container import RagCore
@@ -203,14 +208,35 @@ def ask(
     )
     result = core.ask(question, top_k)
 
-    console.print(
+    head = (
         f"[dim]策略 {result.strategy} · 模式 {cfg.retrieval.mode} · "
-        f"{len(result.retrieved)} 条资料 · {result.elapsed_ms} ms[/dim]"
+        f"{len(result.retrieved)} 条资料 · {result.elapsed_ms} ms"
     )
+    if result.refusal_reason:
+        head += f" · 拒答原因 {result.refusal_reason}"
+    console.print(head + "[/dim]")
 
-    title = "拒答" if result.refused else "答案"
-    style = "yellow" if result.refused else "green"
-    console.print(Panel(result.answer, title=title, border_style=style))
+    if result.refused:
+        # 拒答时正文展示配置话术而不是 answer：no_citation 下 answer 是模型没有出处的
+        # 自由发挥，把它当成答案渲染等于放行不可信内容，而界面上看不出区别
+        body = cfg.generate.empty_answer
+        title, style = "拒答", "yellow"
+    else:
+        body = result.answer
+        title, style = "答案", "green"
+    console.print(Panel(body, title=title, border_style=style))
+
+    # 不可信不等于没价值：no_citation 的回答是唯一能看出「模型差在哪」的线索
+    # （答非所问，还是答对了只是没标引用），全丢掉等于断掉排查路径。
+    # 因此降级展示而非隐藏——换个身份出现，并用红框与上方的答复区明确分开。
+    if result.refusal_reason == "no_citation":
+        console.print(
+            Panel(
+                result.answer,
+                title="未获资料支持的回答 · 仅供参考，不可作为答复依据",
+                border_style="red",
+            )
+        )
 
     if not result.retrieved:
         console.print("[yellow]未检索到任何片段。若索引为空，先执行 rag-qa ingest[/yellow]")

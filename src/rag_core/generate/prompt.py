@@ -13,13 +13,27 @@
 话术取自 `generate.empty_answer` 配置，不写死在模板里。
 客服话术是要给业务方调的，写死会让「改一句提示语」变成改代码、重新发版。
 prompt 与拒答判定用的是同一个字符串，因此模型照话术回答时一定能被判出来。
+
+### 原文自带的 [N] 必须转义
+
+语料正文里天然存在方括号编号（本项目的法规文末就是 `[1] 《邮政法》` 这类引用列表），
+它与我们给资料编的号同形。模型照抄进答案后会被解析成引用，
+而这些编号往往落在合法区间内——越界校验抓不到，warning 也不会记，
+`cited_indices` 和可追溯率就这样被静默污染。
+
+所以拼装时把原文里的 `[N]` 转成全角 ［N］，两种方括号在形式上可区分。
+转义放在拼装侧而不是解析侧：解析侧拿到的只是一段模型输出，
+无从判断某个 `[3]` 是模型标的引用还是它从原文抄来的法规序号。
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from rag_core.core.contracts import RetrievedChunk
+
+_INLINE_BRACKET_NUM = re.compile(r"\[(\d+)\]")
 
 SYSTEM_TEMPLATE = """你是物流服务规则问答助手。只依据下面给出的参考资料作答，不得使用参考资料之外的知识。
 
@@ -33,21 +47,32 @@ USER_TEMPLATE = """参考资料：
 问题：{question}"""
 
 
+def escape_inline_brackets(text: str) -> str:
+    """把原文自带的 [N] 转成全角 ［N］，与资料编号区分开。
+
+    只作用在拼进 prompt 的这份字符串上，不碰 `Chunk` ——
+    它是 frozen，展示给用户的正文要保持原样。
+    """
+    return _INLINE_BRACKET_NUM.sub(r"［\1］", text)
+
+
 def build_context(hits: list[RetrievedChunk]) -> str:
     """把命中片段编成带 [N] 编号的参考资料块。
 
     编号取 `final_rank`，来源优先取文档标题、退化到文件名。
     带上标题链是为了让模型在「两段原文说法相近」时能靠上下文区分，
     否则它容易把赔付上限张冠李戴到另一家快递的规则上。
+
+    编号标记在转义之后才拼上，否则会把自己的 `[1]` 也转成全角。
     """
     blocks: list[str] = []
     for hit in hits:
         chunk = hit.chunk
         title = chunk.doc_title or Path(chunk.source).name
-        lines = [f"[{hit.final_rank}] 来源：{title}"]
+        lines = [f"[{hit.final_rank}] 来源：{escape_inline_brackets(title)}"]
         if chunk.heading_path:
-            lines.append(f"    标题链：{chunk.heading_path}")
-        lines.append(f"    {chunk.text.strip()}")
+            lines.append(f"    标题链：{escape_inline_brackets(chunk.heading_path)}")
+        lines.append(f"    {escape_inline_brackets(chunk.text).strip()}")
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
 
