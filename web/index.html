@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物流政策问答 · 证据可溯源</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --line: #e3e6ea;
+    --ink: #1b1f24;
+    --ink-2: #59616b;
+    --ink-3: #8b939e;
+    --brand: #1f5fd8;
+    --brand-soft: #eaf1fd;
+    --ok: #16794c;
+    --warn: #9a6400;
+    --warn-bg: #fff6e5;
+    --err: #a3242c;
+    --err-bg: #fdecec;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+
+  header {
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    padding: 14px 24px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  .brand h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: .2px; }
+  .brand p { margin: 2px 0 0; font-size: 12px; color: var(--ink-3); }
+
+  .switch {
+    display: flex; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 2px; gap: 2px;
+  }
+  .switch button {
+    border: 0; background: transparent; color: var(--ink-2);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-family: var(--mono); transition: .15s;
+  }
+  .switch button.on { background: var(--brand); color: #fff; }
+  .switch button:disabled { opacity: .45; cursor: default; }
+
+  .samples { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+  .samples button {
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink-2);
+    padding: 5px 11px; border-radius: 14px; cursor: pointer; font-size: 12px;
+  }
+  .samples button:hover { border-color: var(--brand); color: var(--brand); }
+
+  main {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 16px; padding: 16px 24px 24px; max-width: 1440px; margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; overflow: hidden;
+  }
+  .panel > h2 {
+    margin: 0; padding: 11px 16px; font-size: 12px; font-weight: 600;
+    color: var(--ink-2); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .panel > h2 .tag {
+    margin-left: auto; font-family: var(--mono); font-weight: 400;
+    color: var(--ink-3); font-size: 11px;
+  }
+
+  #thread { padding: 16px; min-height: 300px; max-height: 68vh; overflow-y: auto; }
+  .msg { margin-bottom: 18px; }
+  .msg .q {
+    background: var(--brand-soft); border-radius: 8px; padding: 9px 13px;
+    font-weight: 550; margin-bottom: 9px;
+  }
+  .answer { white-space: pre-wrap; word-break: break-word; }
+  .answer .caret {
+    display: inline-block; width: 2px; height: 15px; background: var(--brand);
+    vertical-align: -2px; animation: blink 1s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .box { border-radius: 8px; padding: 11px 13px; margin-bottom: 10px; font-size: 13px; }
+  .box.err { background: var(--err-bg); border: 1px solid #f3c9cb; color: var(--err); }
+  .box.warn { background: var(--warn-bg); border: 1px solid #f0dcb4; color: var(--warn); }
+  .box.warn .body { color: var(--ink); margin-top: 7px; }
+  .box.warn .body .label {
+    display: block; font-size: 11px; color: var(--warn); margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .empty { color: var(--ink-3); font-size: 13px; padding: 26px 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td {
+    padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    background: #fafbfc; color: var(--ink-2); font-weight: 600;
+    position: sticky; top: 0; z-index: 1; white-space: nowrap;
+  }
+  td.num { font-family: var(--mono); white-space: nowrap; color: var(--ink-2); }
+  td.rank { font-family: var(--mono); font-weight: 600; color: var(--brand); }
+  .src { font-weight: 550; }
+  .head { color: var(--ink-3); font-size: 11px; display: block; margin-top: 2px; }
+  .text { color: var(--ink-2); max-width: 340px; }
+  tr.new { animation: fade .5s ease-out; }
+  @keyframes fade { from { background: #fff8dd; } to { background: transparent; } }
+  tr.cited { background: #f2f8f4; }
+  td.cite { text-align: center; color: var(--ok); font-weight: 700; }
+  .dash { color: #c6ccd4; }
+
+  .wrap { max-height: 68vh; overflow: auto; }
+  .foot {
+    padding: 9px 16px; border-top: 1px solid var(--line);
+    font-size: 11px; color: var(--ink-3); font-family: var(--mono);
+    display: flex; gap: 14px; flex-wrap: wrap;
+  }
+
+  form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  form input {
+    flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px;
+    font-size: 13px; font-family: inherit; outline: none;
+  }
+  form input:focus { border-color: var(--brand); }
+  form button {
+    border: 0; background: var(--brand); color: #fff; border-radius: 8px;
+    padding: 9px 20px; cursor: pointer; font-size: 13px; font-weight: 550;
+  }
+  form button:disabled { opacity: .5; cursor: default; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>物流政策问答</h1>
+    <p>答案逐句可溯源到政策原文，检索过程全程可见</p>
+  </div>
+  <div class="switch" id="switch">
+    <button data-mode="vector">vector</button>
+    <button data-mode="hybrid">hybrid</button>
+  </div>
+  <div class="samples" id="samples"></div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>对话 <span class="tag" id="strategy"></span></h2>
+    <div id="thread">
+      <div class="empty">选一个示例问题，或直接在下方提问。</div>
+    </div>
+    <form id="form">
+      <input id="input" placeholder="输入问题，例如：未保价的快件丢失了怎么赔偿" autocomplete="off">
+      <button id="send" type="submit">提问</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>证据面板 <span class="tag" id="eviTag">等待提问</span></h2>
+    <div class="wrap">
+      <table id="table" hidden>
+        <thead>
+          <tr>
+            <th>#</th><th>来源文档</th><th>标题链</th>
+            <th>向量</th><th>BM25</th><th>融合分</th><th>重排分</th><th>引用</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="eviEmpty">命中片段会在这里按最终排名列出，含三路各自的位置。</div>
+    </div>
+    <div class="foot" id="foot"></div>
+  </section>
+</main>
+
+<script>
+const SAMPLES = [
+  "未保价的快件丢失了怎么赔偿",
+  "快递能寄香烟和白酒吗",
+  "实名收寄需要出示什么证件",
+  "快递服务地域是怎么界定的",
+  "你们公司食堂的午餐多少钱一份",
+];
+
+const $ = (id) => document.getElementById(id);
+let mode = "vector";
+let busy = false;
+
+// 方案开关。切换只影响后续提问，已经问过的不重跑——
+// 历史答案是当时那套方案产出的，静默改写等于伪造对照。
+$("switch").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || busy) return;
+  mode = btn.dataset.mode;
+  [...$("switch").children].forEach((b) => b.classList.toggle("on", b === btn));
+});
+
+const sampleBox = $("samples");
+SAMPLES.forEach((q) => {
+  const b = document.createElement("button");
+  b.textContent = q;
+  b.onclick = () => { $("input").value = q; ask(q); };
+  sampleBox.appendChild(b);
+});
+
+$("form").onsubmit = (e) => {
+  e.preventDefault();
+  const q = $("input").value.trim();
+  if (q) ask(q);
+};
+
+function ask(question) {
+  if (busy) return;
+  busy = true;
+  $("send").disabled = true;
+  [...$("switch").children].forEach((b) => (b.disabled = true));
+  run(question).finally(() => {
+    busy = false;
+    $("send").disabled = false;
+    [...$("switch").children].forEach((b) => (b.disabled = false));
+  });
+}
+
+async function run(question) {
+  const thread = $("thread");
+  thread.querySelector(".empty")?.remove();
+
+  const msg = document.createElement("div");
+  msg.className = "msg";
+  msg.innerHTML = `<div class="q"></div><div class="answer"><span class="txt"></span><span class="caret"></span></div>`;
+  msg.querySelector(".q").textContent = question;
+  thread.appendChild(msg);
+  thread.scrollTop = thread.scrollHeight;
+
+  const txt = msg.querySelector(".txt");
+  const caret = msg.querySelector(".caret");
+  const tbody = $("table").querySelector("tbody");
+
+  tbody.innerHTML = "";
+  $("table").hidden = true;
+  $("eviEmpty").hidden = false;
+  $("eviEmpty").textContent = "检索中……";
+  $("foot").textContent = "";
+  $("eviTag").textContent = "检索中";
+
+  let res;
+  try {
+    res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, mode }),
+    });
+  } catch (e) {
+    caret.remove();
+    box(msg, "err", "无法连接服务：" + e.message);
+    return;
+  }
+  if (!res.ok) {
+    caret.remove();
+    box(msg, "err", "服务返回 " + res.status + "：" + (await res.text()));
+    return;
+  }
+
+  // fetch + ReadableStream 而不是 EventSource：
+  // 后者只发 GET，而提问需要带 body（问题与方案都要传）。
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+
+    // SSE 以空行分帧，最后一段可能不完整，留在 buffer 里等下一块
+    let cut;
+    while ((cut = buf.indexOf("\n\n")) !== -1) {
+      const raw = buf.slice(0, cut);
+      buf = buf.slice(cut + 2);
+      const ev = { event: "message", data: "" };
+      for (const line of raw.split("\n")) {
+        if (line.startsWith("event:")) ev.event = line.slice(6).trim();
+        else if (line.startsWith("data:")) ev.data += line.slice(5).trim();
+      }
+      if (!ev.data) continue;
+
+      const payload = JSON.parse(ev.data);
+      if (ev.event === "token") {
+        txt.textContent += payload.text;
+        thread.scrollTop = thread.scrollHeight;
+      } else if (ev.event === "sources") {
+        render(tbody, payload.hits);
+      } else if (ev.event === "done") {
+        finish(payload, tbody);
+      } else if (ev.event === "error") {
+        caret.remove();
+        box(msg, "err", "生成中断：" + payload.message);
+        $("eviTag").textContent = "已中断";
+      }
+    }
+  }
+  caret.remove();
+}
+
+function render(tbody, hits) {
+  tbody.innerHTML = "";
+  if (!hits.length) {
+    $("table").hidden = true;
+    $("eviEmpty").hidden = false;
+    $("eviEmpty").textContent = "没有检索到任何片段。";
+    $("eviTag").textContent = "0 条";
+    return;
+  }
+  $("eviEmpty").hidden = true;
+  $("table").hidden = false;
+  $("eviTag").textContent = hits.length + " 条";
+
+  hits.forEach((h) => {
+    const tr = document.createElement("tr");
+    tr.className = "new";
+    tr.dataset.rank = h.rank;
+    // 排名为 null 表示该路没召回它，显示「—」而不是 0：
+    // 0 会被读成「排第一」
+    const cell = (v) => (v === null || v === undefined
+      ? '<span class="dash">—</span>' : v);
+    tr.innerHTML = `
+      <td class="rank">${h.rank}</td>
+      <td><span class="src"></span><span class="head"></span></td>
+      <td class="text"><span class="hp"></span></td>
+      <td class="num">${cell(h.vector_rank)}</td>
+      <td class="num">${cell(h.bm25_rank)}</td>
+      <td class="num">${h.fused_score}</td>
+      <td class="num">${cell(h.rerank_score)}</td>
+      <td class="cite"></td>`;
+    tr.querySelector(".src").textContent = h.source;
+    tr.querySelector(".head").textContent = h.doc_title || "";
+    tr.querySelector(".hp").textContent = h.heading_path || "—";
+    tr.title = h.text;
+    tbody.appendChild(tr);
+  });
+}
+
+function finish(done, tbody) {
+  const cited = new Set(done.cited_indices);
+  [...tbody.children].forEach((tr) => {
+    if (cited.has(Number(tr.dataset.rank))) {
+      tr.classList.add("cited");
+      tr.querySelector(".cite").textContent = "✓";
+    }
+  });
+
+  $("foot").innerHTML = "";
+  const bits = [
+    "策略 " + done.strategy,
+    "引用 " + (done.cited_indices.join(", ") || "无"),
+    done.elapsed_ms + " ms",
+  ];
+  $("foot").textContent = bits.join("  ·  ");
+  $("strategy").textContent = done.strategy;
+
+  // 拒答时 answer 的可信度取决于原因，三种情况三种渲染：
+  // no_hits 是配置话术（可信），refusal_phrase 同样是话术，
+  // no_citation 是模型没标出处的自由发挥，必须降级展示而不是当答案。
+  const msg = $("thread").lastElementChild;
+  if (done.refused) {
+    const body = msg.querySelector(".txt").textContent;
+    msg.querySelector(".answer").remove();
+    if (done.refusal_reason === "no_citation") {
+      const b = box(msg, "warn", "知识库未支持该回答，以下内容仅供参考");
+      const inner = document.createElement("div");
+      inner.className = "body";
+      inner.innerHTML = `<span class="label">模型未标注引用，无法溯源</span>`;
+      inner.append(document.createTextNode(body));
+      b.appendChild(inner);
+    } else {
+      box(msg, "warn", body || done.refusal_reason);
+    }
+    $("eviTag").textContent += " · 拒答";
+  }
+}
+
+function box(parent, kind, text) {
+  const el = document.createElement("div");
+  el.className = "box " + kind;
+  el.textContent = text;
+  parent.appendChild(el);
+  return el;
+}
+
+// 启动时拉一次元信息，让开关的默认态与服务端配置一致
+fetch("/api/meta")
+  .then((r) => r.json())
+  .then((m) => {
+    mode = m.default_mode;
+    [...$("switch").children].forEach((b) =>
+      b.classList.toggle("on", b.dataset.mode === mode));
+    $("strategy").textContent = m.strategies[mode] || "";
+  })
+  .catch(() => {
+    [...$("switch").children].forEach((b) => (b.disabled = true));
+  });
+</script>
+</body>
+</html>

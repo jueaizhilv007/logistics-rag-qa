@@ -44,10 +44,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/rag_core"]
+# rag_api 一并打包：它只是 import 了 fastapi，没装 --extra api 时无人 import 它
+packages = ["src/rag_core", "src/rag_api"]
 
 [project.scripts]
 rag-qa = "rag_core.cli:app"
+rag-api = "rag_api.main:run"
 
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
