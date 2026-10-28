@@ -281,19 +281,27 @@ async function run(question) {
     if (done) break;
     buf += decoder.decode(value, { stream: true });
 
-    // SSE 以空行分帧，最后一段可能不完整，留在 buffer 里等下一块
-    let cut;
-    while ((cut = buf.indexOf("\n\n")) !== -1) {
-      const raw = buf.slice(0, cut);
-      buf = buf.slice(cut + 2);
+    // SSE 以空行分帧，最后一段可能不完整，留在 buffer 里等下一块。
+    //
+    // 分隔符要按 \r\n\r\n 认，不能只找 \n\n：服务端（sse-starlette）
+    // 按 CRLF 输出，`\r\n\r\n` 里没有连续的 `\n\n`，
+    // 只找后者会永远分不出帧——数据其实早就到了，
+    // 表现为界面一直停在「检索中」，而网络面板里响应体满满当当。
+    let m;
+    while ((m = /\r?\n\r?\n/.exec(buf)) !== null) {
+      const raw = buf.slice(0, m.index);
+      buf = buf.slice(m.index + m[0].length);
       const ev = { event: "message", data: "" };
-      for (const line of raw.split("\n")) {
+      for (const line of raw.split(/\r?\n/)) {
         if (line.startsWith("event:")) ev.event = line.slice(6).trim();
         else if (line.startsWith("data:")) ev.data += line.slice(5).trim();
       }
       if (!ev.data) continue;
 
-      const payload = JSON.parse(ev.data);
+      // 心跳等非业务帧的 data 不是 JSON，解析失败就跳过这一帧，
+      // 不能让它把整个读取循环带崩
+      let payload;
+      try { payload = JSON.parse(ev.data); } catch { continue; }
       if (ev.event === "token") {
         txt.textContent += payload.text;
         thread.scrollTop = thread.scrollHeight;
