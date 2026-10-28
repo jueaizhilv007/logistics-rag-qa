@@ -45,7 +45,7 @@ vector_store:
 # strategy: fixed 固定窗口，hierarchical 按标题层级
 # inject_heading: 是否把标题链前缀拼进检索文本
 chunking:
-  strategy: fixed
+  strategy: hierarchical
   size: 500
   overlap: 50
   inject_heading: true
@@ -61,7 +61,7 @@ retrieval:
     vector_k: 10
     rrf_k: 60
   rerank:
-    enabled: false
+    enabled: true
     # 原定 provider 是 bge_local（本地 cross-encoder），改用服务端 /rerank：
     # 本地方案要引入 torch 与 GB 级模型，代价与一组对照实验不相称；
     # LLM 打分那条退路又不是 cross-encoder，与 5.3 节的论证不符。
