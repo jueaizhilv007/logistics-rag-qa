@@ -117,6 +117,12 @@ def evaluate(core, questions: list[dict], k: int) -> dict:
     refused_no_hits = 0
     refused_hesitant = 0
 
+    # 引用写法不被解析器识别的条数（如 【2】、[1,2]）。
+    # 它此前混在 no_citation 里，于是解析器的缺口被记成了模型的过失。
+    # 单独计数，但**不进 summary.csv**：历史那几行没有这一列，
+    # 补列会让新老行的列含义不一致，正是此前在汇总表上犯过的那种错误
+    bad_format = 0
+
     # 可答题的两种失败分开记：拒答看得见，误引看不见
     mis_refused = 0
     mis_cited = 0
@@ -130,6 +136,9 @@ def evaluate(core, questions: list[dict], k: int) -> dict:
     for q in questions:
         result = core.ask(q["question"], k=k)
         hits = result.retrieved
+
+        if result.refusal_reason == "bad_format":
+            bad_format += 1
 
         def gold_of(hit) -> bool:
             return is_gold(
@@ -221,6 +230,8 @@ def evaluate(core, questions: list[dict], k: int) -> dict:
         "latency_p95": percentile(latency, 0.95),
         "refusal_no_hits_rate": ratio(refused_no_hits, total_unanswerable),
         "refusal_hesitant_rate": ratio(refused_hesitant, total_unanswerable),
+        # 只进明细 json，不写进 summary.csv 的列定义——见 write_summary
+        "bad_format": bad_format,
         "details": details,
     }
 
@@ -240,6 +251,13 @@ def print_report(strategy: str, summary: dict) -> None:
     print(f"  延迟 p50/p95   {summary['latency_p50']} / {summary['latency_p95']} ms")
     print(f"  拒答率·检索不到   {summary['refusal_no_hits_rate']:.4f}")
     print(f"  拒答率·有资料不敢答 {summary['refusal_hesitant_rate']:.4f}")
+    # 只在非 0 时出现：它是诊断信号而非常规指标，
+    # 每次都打印会让它退化成一行没人看的背景噪音
+    if summary.get("bad_format"):
+        print(
+            f"  引用写法不被识别 {summary['bad_format']} 条"
+            f"（已计入误拒，此处单列：这是解析器的缺口，不是模型不引用）"
+        )
     print("  按题型（样本小，只作参考，不进汇总表）")
     for kind, bucket in sorted(summary["by_type"].items()):
         n = bucket["n"]

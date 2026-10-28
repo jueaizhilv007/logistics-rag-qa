@@ -52,6 +52,24 @@ from rag_core.generate.prompt import build_context, build_messages
 
 CITATION_RE = re.compile(r"\[(\d+)\]")
 
+# 疑似引用标记、但严格解析认不出来的写法（方头括号、合并编号等）。
+#
+# ### 它只用于观察，绝不参与引用提取
+#
+# 认定引用这件事必须只有一把尺子，否则 prompt 里那条
+# 「半角 [N] 才是引用」的转义约定就白签了：原文自带的编号正是先被
+# escape_inline_brackets 转成全角 ［N］才得以与真引用区分开，
+# 这里若再把全角纳进来，等于把好不容易分开的两件事重新掺回去。
+# 所以刻意不含全角 ［］，也不因为多认了几种写法就放宽 `[N]` 的认定。
+#
+# ### 它要解决的问题
+#
+# 「模型引了但写法不对」与「模型根本没引」此前共用一个 no_citation。
+# 两者答案为同样不可信，但指向的修复完全不同：前者要改 prompt 或解析器，
+# 后者才是资料和检索的事。混成一个值的结果是前者永远看不见——
+# 解析器的失败被记成了模型的过失。
+CITATION_LIKE_RE = re.compile(r"[\[【]\s*\d+(?:\s*[,，、]\s*\d+)*\s*[\]】]")
+
 
 @lru_cache(maxsize=1)
 def _encoder():
@@ -268,8 +286,31 @@ class GeneratePipeline:
         话术是配置项，业务方会改它，而子串匹配意味着改文案就等于改判别阈值：
         话术一旦改短（比如「不清楚」），带引用的正常答案只要顺带用到这几个字就被误杀。
         收紧到整句级之后，话术无论怎么改，都只命中「模型原样输出话术」这一种情况。
+
+        ### 「一个编号都没引」还要再拆一层
+
+        没有引用这件事有两种截然不同的成因：
+        模型确实没引（资料不够，或它在用资料之外的知识作答），
+        以及模型引了、但写法不被 `CITATION_RE` 识别（如 `【2】`、`[1,2]`）。
+
+        两者答案同样不可信，但失败方不同，修复路径也不同：
+        前者指向资料与检索，后者指向 prompt 与解析器。
+        合并成 no_citation 的后果是后者永远统计不到，
+        解析器的问题会以「模型不肯引用」的面目出现，
+        拿着这个归因去调 prompt 和检索，只会越调越偏。
         """
         if not cited:
+            # 严格解析出了编号、却全部越界，那是模型编造编号而非格式问题。
+            # 所以只在 raw 为空（解析器一个数都没认出来）时才可能判 bad_format
+            if not _parse_cited_indices(answer) and CITATION_LIKE_RE.search(answer):
+                marks = CITATION_LIKE_RE.findall(answer)[:5]
+                self.log.warning(
+                    "答案疑似引用了资料但写法不被识别 %s，"
+                    "判为 bad_format 而非 no_citation：这是解析器的缺口，"
+                    "不该记成模型的过失",
+                    marks,
+                )
+                return "bad_format"
             return "no_citation"
         if self._normalized(answer) == self._normalized(self.empty_answer):
             return "refusal_phrase"

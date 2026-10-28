@@ -140,9 +140,19 @@ class RetrievedChunk:
 
 
 # 拒答原因。空串表示未拒答。
-# 封闭集合而非开放集合：消费方按这三种取值穷举渲染分支，新实现不应发明第四种，
+#
+# 封闭集合而非开放集合：消费方按取值穷举渲染分支，新实现不应发明第五种，
 # 判断标准与 IngestResult.status 一致（那边是开放/封闭取舍的另一半，不要统一口径）。
-RefusalReason = Literal["", "no_hits", "no_citation", "refusal_phrase"]
+#
+# 这条约束的代价在补 bad_format 时兑现过一次：cli 与前端都有
+# `== "no_citation"` 的等值判断，新取值会让它们静默落进 else，
+# 于是「未获资料支持的回答」那个红框参考区不再渲染——
+# 而它恰恰是唯一能看出「模型到底差在哪」的线索。
+# 也就是说，只改生产端而不改消费端，会把一次分类细化变成一次线索丢失。
+# 新增取值时必须同步穷举全部消费方。
+RefusalReason = Literal[
+    "", "no_hits", "no_citation", "bad_format", "refusal_phrase"
+]
 
 
 @dataclass
@@ -165,7 +175,8 @@ class QAResult:
     `refused=True` 下 `answer` 有两种截然不同的东西：
 
     - `no_hits` ：检索为空，没调 LLM，`answer` 就是配置话术，可信
-    - `no_citation` ：有资料但模型一个编号都没引，`answer` 是模型没有出处的自由发挥，不可信
+    - `no_citation` ：有资料但模型确实一个编号都没引，`answer` 是模型没有出处的自由发挥，不可信
+    - `bad_format` ：模型引了、但用了规定的 `[N]` 之外的写法（如 `【2】`、`[1,2]`），严格解析认不出来。`answer` 同样不可信，但**失败方是解析而不是模型的判断**——它指向改 prompt 或解析器，不该被记成模型的过失
     - `refusal_phrase` ：模型照话术作答，`answer` 即话术，可信
 
     不区分的话，渲染方只能靠注释约定「拒答时别信 `answer` 」，

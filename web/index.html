@@ -447,18 +447,30 @@ function finish(done, tbody) {
   $("foot").textContent = bits.join("  ·  ");
   $("strategy").textContent = done.strategy;
 
-  // 拒答时 answer 的可信度取决于原因，三种情况三种渲染：
+  // 拒答时 answer 的可信度取决于原因，四种情况四种渲染：
   // no_hits 是配置话术（可信），refusal_phrase 同样是话术，
-  // no_citation 是模型没标出处的自由发挥，必须降级展示而不是当答案。
+  // no_citation 是模型压根没标出处的自由发挥，bad_format 是模型标了
+  // 但写法不被解析器识别（如 【2】）。后两者都必须降级展示而不是当答案。
+  // 判等写成集合成员判断：枚举新增取值时，等值判断会让它静默落进 else，
+  // 把一次分类细化变成一次线索丢失
   const msg = $("thread").lastElementChild;
   if (done.refused) {
     const body = msg.querySelector(".txt").textContent;
     msg.querySelector(".answer").remove();
-    if (done.refusal_reason === "no_citation") {
-      const b = box(msg, "warn", "知识库未支持该回答，以下内容仅供参考");
+    if (["no_citation", "bad_format"].includes(done.refusal_reason)) {
+      // 两者不可信的成因不同：一个是模型没引，一个是模型引了但解析器不认。
+      // 提示因此要区分——后者要人工做的是核对编号，不是去查资料够不够
+      const bad = done.refusal_reason === "bad_format";
+      const b = box(
+        msg,
+        "warn",
+        bad ? "引用格式未被识别，以下内容仅供参考" : "知识库未支持该回答，以下内容仅供参考"
+      );
       const inner = document.createElement("div");
       inner.className = "body";
-      inner.innerHTML = `<span class="label">模型未标注引用，无法溯源</span>`;
+      inner.innerHTML = bad
+        ? `<span class="label">引用写法未被解析支持，请人工核对编号</span>`
+        : `<span class="label">模型未标注引用，无法溯源</span>`;
       inner.append(document.createTextNode(body));
       b.appendChild(inner);
     } else {

@@ -229,11 +229,21 @@ def ask(
     # 不可信不等于没价值：no_citation 的回答是唯一能看出「模型差在哪」的线索
     # （答非所问，还是答对了只是没标引用），全丢掉等于断掉排查路径。
     # 因此降级展示而非隐藏——换个身份出现，并用红框与上方的答复区明确分开。
-    if result.refusal_reason == "no_citation":
+    # bad_format 与 no_citation 一样要展示参考区：那道题的 answer 是唯一能看出
+    # 「模型卡在哪」的线索。写成成员判断而不是等值比较，正是为了新增取值时
+    # 不再出现「枚举加了、消费端却静默落进 else」这种事。
+    if result.refusal_reason in ("no_citation", "bad_format"):
+        # bad_format 的答案其实是有引用的，只是写法不被解析支持，
+        # 因此提示语要指向「核对编号」而不是「资料不足」——两者要人工做的事不同
+        note = (
+            "引用格式未被识别 · 请人工核对编号，解析器暂不支持这种写法"
+            if result.refusal_reason == "bad_format"
+            else "未获资料支持的回答 · 仅供参考，不可作为答复依据"
+        )
         console.print(
             Panel(
                 result.answer,
-                title="未获资料支持的回答 · 仅供参考，不可作为答复依据",
+                title=note,
                 border_style="red",
             )
         )
