@@ -46,6 +46,8 @@ uv run python eval/run_retrieval.py --mode hybrid -k 5
 
 评测集 80 条自编题（70 条可答 / 10 条无解），覆盖 amount / policy / waybill / region 四类问法，其中 10 条跨文档题要求聚合多家快递的说法。**每次只改一个变量。**
 
+> 题型分布受语料结构制约（amount 36 / policy 39 / waybill 4 / region 1），**waybill 与 region 样本太小，仅作参考、不进对比结论**——`run_retrieval.py` 的按题型统计只打印在终端，不写进 `summary.csv`，正是为了不让它被当成可比指标误读。跨文档分层则相反，它有明确的 60 / 10 分组，并且结论里就用到了它。
+
 ### 结果
 
 | 实验 | 变量 | Recall@5 | HitRate@3 | 可追溯率 | 误拒 | 误引 | 单文档 | 跨文档 | p50 |
