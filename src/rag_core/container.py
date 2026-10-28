@@ -139,6 +139,11 @@ class RagCore:
                 cfg.retrieval.rerank.provider,
                 top_n=cfg.retrieval.rerank.top_n,
                 options=cfg.retrieval.rerank.options,
+                # 借用 llm 的密钥槽而不是新增第三个槽：Secrets 只认 embedding
+                # 与 llm 两类，重排落在推理侧、与 LLM 结算给同一家服务商。
+                # 新增 rerank_api_key 的话，换服务商要改 .env，
+                # 且迟早冒出「这个字段到底填哪个 key」的疑问
+                api_key=secrets.llm_api_key,
             )
 
         # 检索器。两种策略需要的构造参数不同，按 mode 组装后再透传。

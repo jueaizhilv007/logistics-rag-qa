@@ -22,7 +22,6 @@ def load_builtin_plugins() -> None:
     import rag_core.llms  # noqa: F401
     import rag_core.retrieval.bm25  # noqa: F401
     import rag_core.retrieval.hybrid  # noqa: F401
+    import rag_core.retrieval.rerankers  # noqa: F401
     import rag_core.retrieval.vector  # noqa: F401
     import rag_core.stores  # noqa: F401
-    # rerankers.py（bge 实现）由 S7 提供：E4 才是验证重排的那组实验，
-    # S3 阶段先把契约与装配位留好。未实现期间不导入，否则本函数会抛 ImportError。

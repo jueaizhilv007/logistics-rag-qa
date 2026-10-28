@@ -62,8 +62,20 @@ retrieval:
     rrf_k: 60
   rerank:
     enabled: false
-    provider: bge_local
+    # 原定 provider 是 bge_local（本地 cross-encoder），改用服务端 /rerank：
+    # 本地方案要引入 torch 与 GB 级模型，代价与一组对照实验不相称；
+    # LLM 打分那条退路又不是 cross-encoder，与 5.3 节的论证不符。
+    # 选型变更的完整理由见 src/rag_core/retrieval/rerankers.py 与笔记 04。
+    provider: agicto
+    # 候选池大小。重排的意义在于「从更大候选里挑更好的」，
+    # 若它等于最终条数，重排就无事可做
     top_n: 20
+    options:
+      model: gte-rerank-v2
+      base_url: https://api.agicto.cn/v1/
+      # 单次请求上限。服务端实测 10 个正常返回、11 个起一律返回 10 个
+      # 且不报错；超出的候选必须分批请求，否则会被静默挤出竞争
+      batch_size: 10
 
 # 生成层
 generate:
