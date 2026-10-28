@@ -111,7 +111,28 @@
   td.rank { font-family: var(--mono); font-weight: 600; color: var(--brand); }
   .src { font-weight: 550; }
   .head { color: var(--ink-3); font-size: 11px; display: block; margin-top: 2px; }
-  .text { color: var(--ink-2); max-width: 340px; }
+  .text { color: var(--ink-2); max-width: 320px; }
+  /* 命中片段默认只给三行：客服要的是那一句赔付规则，
+     不是整块原文。原文在展开区，一键可达 */
+  .snip {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden; line-height: 1.6;
+  }
+  mark { background: #fff3bf; color: inherit; border-radius: 2px; padding: 0 1px; }
+  tbody tr:not(.detail) { cursor: pointer; }
+  tbody tr:not(.detail):hover { background: #f7f9fb; }
+  .more {
+    margin-top: 4px; padding: 0; border: 0; background: none;
+    color: var(--brand); font-size: 11px; cursor: pointer;
+  }
+  tr.detail td { background: #fbfcfd; }
+  .dmeta { color: var(--ink-3); font-size: 11px; margin-bottom: 6px; }
+  .dsnip { line-height: 1.75; }
+  .dfull { margin-top: 9px; color: var(--ink-3); font-size: 11px; }
+  .dfullbody {
+    white-space: pre-wrap; color: var(--ink-2);
+    margin-top: 6px; line-height: 1.75; font-size: 12px;
+  }
   tr.new { animation: fade .5s ease-out; }
   @keyframes fade { from { background: #fff8dd; } to { background: transparent; } }
   tr.cited { background: #f2f8f4; }
@@ -170,7 +191,7 @@
       <table id="table" hidden>
         <thead>
           <tr>
-            <th>#</th><th>来源文档</th><th>标题链</th>
+            <th>#</th><th>来源文档</th><th>命中片段</th>
             <th>向量</th><th>BM25</th><th>融合分</th><th>重排分</th><th>引用</th>
           </tr>
         </thead>
@@ -306,7 +327,7 @@ async function run(question) {
         txt.textContent += payload.text;
         thread.scrollTop = thread.scrollHeight;
       } else if (ev.event === "sources") {
-        render(tbody, payload.hits);
+        render(tbody, payload.hits, payload.terms);
       } else if (ev.event === "done") {
         finish(payload, tbody);
       } else if (ev.event === "error") {
@@ -319,7 +340,23 @@ async function run(question) {
   caret.remove();
 }
 
-function render(tbody, hits) {
+const esc = (s) => String(s).replace(/[&<>"]/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// 高亮提问里的词。terms 由后端分词给出且已滤掉单字与停用词，
+// 前端不再自己分一遍——两边各分一次会分出不同的词，
+// 出现「这边标了那边没标」的不一致
+function hl(text, terms) {
+  if (!text) return "";
+  const out = esc(text);
+  if (!terms || !terms.length) return out;
+  // 长词优先：先匹配「有效货值证明」再匹配「证明」，
+  // 否则短词会抢先把长词切碎
+  const words = [...terms].sort((a, b) => b.length - a.length).map(esc);
+  return out.replace(new RegExp("(" + words.join("|") + ")", "g"), "<mark>$1</mark>");
+}
+
+function render(tbody, hits, terms) {
   tbody.innerHTML = "";
   if (!hits.length) {
     $("table").hidden = true;
@@ -343,7 +380,10 @@ function render(tbody, hits) {
     tr.innerHTML = `
       <td class="rank">${h.rank}</td>
       <td><span class="src"></span><span class="head"></span></td>
-      <td class="text"><span class="hp"></span></td>
+      <td class="text">
+        <div class="snip"></div>
+        <button class="more" type="button">展开原文</button>
+      </td>
       <td class="num">${cell(h.vector_rank)}</td>
       <td class="num">${cell(h.bm25_rank)}</td>
       <td class="num">${h.fused_score}</td>
@@ -351,15 +391,47 @@ function render(tbody, hits) {
       <td class="cite"></td>`;
     tr.querySelector(".src").textContent = h.source;
     tr.querySelector(".head").textContent = h.doc_title || "";
-    tr.querySelector(".hp").textContent = h.heading_path || "—";
-    tr.title = h.text;
+    tr.querySelector(".snip").innerHTML = hl(h.snippet || h.text, terms);
+    // 整行可点开。命中片段是块内再定位的结果，不是原文；
+    // 客服必须能一键核对原文，否则无从判断摘这段时丢掉了什么前提
+    tr.onclick = () => toggleDetail(tr, h, terms);
     tbody.appendChild(tr);
   });
+}
+
+function toggleDetail(tr, h, terms) {
+  const next = tr.nextElementSibling;
+  if (next && next.classList.contains("detail")) {
+    next.remove();
+    tr.querySelector(".more").textContent = "展开原文";
+    return;
+  }
+  const dtr = document.createElement("tr");
+  dtr.className = "detail";
+  dtr.innerHTML = `
+    <td colspan="8">
+      <div class="dmeta"></div>
+      <div class="dsnip"></div>
+      <details class="dfull">
+        <summary>查看完整片段（${h.text.length} 字）</summary>
+        <div class="dfullbody"></div>
+      </details>
+    </td>`;
+  // fixed 切片没有标题链，如实说明而不是留空——留空会被当成解析失败
+  dtr.querySelector(".dmeta").textContent =
+    [h.heading_path, h.doc_title].filter(Boolean).join(" › ")
+      || "（当前为 fixed 切片，无标题链；切到 hierarchical 后这里显示章节路径）";
+  dtr.querySelector(".dsnip").innerHTML = hl(h.snippet || "", terms);
+  dtr.querySelector(".dfullbody").textContent = h.text;
+  tr.after(dtr);
+  tr.querySelector(".more").textContent = "收起";
 }
 
 function finish(done, tbody) {
   const cited = new Set(done.cited_indices);
   [...tbody.children].forEach((tr) => {
+    // 展开行不是数据行：没有 rank，也没有 .cite
+    if (tr.classList.contains("detail")) return;
     if (cited.has(Number(tr.dataset.rank))) {
       tr.classList.add("cited");
       tr.querySelector(".cite").textContent = "✓";

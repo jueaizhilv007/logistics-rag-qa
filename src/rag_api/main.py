@@ -41,6 +41,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
+from rag_api.snippet import pick_snippet, terms_of
 from rag_core.container import RagCore
 from rag_core.core.contracts import RetrievedChunk, StreamEvent
 from rag_core.plugins import load_builtin_plugins
@@ -107,18 +108,24 @@ class _Runtime:
 runtime = _Runtime()
 
 
-def _hit_payload(hit: RetrievedChunk) -> dict:
+def _hit_payload(hit: RetrievedChunk, question: str) -> dict:
     """把一个命中片段摊平成前端要的字段。
 
     `vector_rank` / `bm25_rank` 为 None 表示该路压根没召回它，
     保留 None 而不是填 0 或 -1：0 会被误读成「排第一」，
     -1 会参与排序。空就是空，界面显示「—」即可。
+
+    `snippet` 与 `text` 并存而不是只发前者：
+    `snippet` 是默认视图（客服一眼看到的那几句），
+    `text` 是完整原文（点开要能核对）。只发 snippet 的话，
+    客服永远无法判断这段话被摘出来时丢掉了什么前提。
     """
     return {
         "rank": hit.final_rank,
         "source": Path(hit.chunk.source).name,
         "doc_title": hit.chunk.doc_title,
         "heading_path": hit.chunk.heading_path,
+        "snippet": pick_snippet(hit.chunk.text, question),
         "text": hit.chunk.text,
         "fused_score": round(hit.fused_score, 6),
         "vector_rank": hit.vector_rank,
@@ -132,9 +139,17 @@ def _frame(event: str, payload: dict) -> dict:
     return {"event": event, "data": json.dumps(payload, ensure_ascii=False)}
 
 
-def _to_frame(event: StreamEvent) -> dict:
+def _to_frame(event: StreamEvent, question: str) -> dict:
     if event.type == "sources":
-        return _frame("sources", {"hits": [_hit_payload(h) for h in event.hits]})
+        # terms 与 hits 平级而不是塞进每条 hit：
+        # 高亮词由提问决定，每条片段都一样，重复 5 遍只是浪费带宽
+        return _frame(
+            "sources",
+            {
+                "hits": [_hit_payload(h, question) for h in event.hits],
+                "terms": terms_of(question),
+            },
+        )
     if event.type == "delta":
         return _frame("token", {"text": event.text})
     if event.type == "error":
@@ -164,7 +179,7 @@ async def _sse(core: RagCore, question: str, k: Optional[int]) -> Iterator[dict]
         event = await asyncio.to_thread(next, stream, None)
         if event is None:
             break
-        yield _to_frame(event)
+        yield _to_frame(event, question)
 
 
 @app.get("/api/meta")
