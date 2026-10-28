@@ -1,0 +1,1422 @@
+{
+  "n": 80,
+  "n_answerable": 70,
+  "n_unanswerable": 10,
+  "recall@5": 0.9857,
+  "hitrate@3": 0.9286,
+  "traceable_rate": 0.9571,
+  "mis_refused_rate": 0.0286,
+  "mis_cited_rate": 0.0143,
+  "recall@5_single": 0.9833,
+  "recall@5_multi": 1.0,
+  "n_single": 60,
+  "n_multi": 10,
+  "by_type": {
+    "amount": {
+      "n": 34,
+      "recall5": 33,
+      "mis_refused": 1,
+      "mis_cited": 1
+    },
+    "policy": {
+      "n": 32,
+      "recall5": 32,
+      "mis_refused": 1,
+      "mis_cited": 0
+    },
+    "waybill": {
+      "n": 3,
+      "recall5": 3,
+      "mis_refused": 0,
+      "mis_cited": 0
+    },
+    "region": {
+      "n": 1,
+      "recall5": 1,
+      "mis_refused": 0,
+      "mis_cited": 0
+    }
+  },
+  "latency_p50": 4405,
+  "latency_p95": 6661,
+  "refusal_no_hits_rate": 0.0,
+  "refusal_hesitant_rate": 1.0,
+  "details": [
+    {
+      "id": "q001",
+      "question": "圆通对单票快件的保价价值上限是多少？超过这个额度怎么办？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5117,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q002",
+      "question": "圆通的保价费最低多少钱？声明价值 1000 元以内收多少？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2
+      ],
+      "elapsed_ms": 4480,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q003",
+      "question": "圆通未保价快件破损毁损，能提供有效货值证明的怎么赔偿？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4673,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q004",
+      "question": "圆通未保价快件破损毁损但无法提供有效货值证明的，赔偿标准是什么？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5257,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q005",
+      "question": "圆通未保价快件丢失或短少的，最高赔偿多少？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3661,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q006",
+      "question": "圆通规定哪些情形视为快件丢失？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5805,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q007",
+      "question": "圆通对邮寄香烟和白酒有什么限制？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4349,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q008",
+      "question": "圆通对工艺品类快件的保价有什么特殊规定？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 4386,
+      "gold_hit_in_top5": false,
+      "multi_doc": false
+    },
+    {
+      "id": "q009",
+      "question": "中通规定寄递物品价值超过多少时应当保价？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "中通快递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        5
+      ],
+      "elapsed_ms": 3938,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q010",
+      "question": "中通未保价快件，能提供有效价值证明的怎么赔？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "中通快递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2
+      ],
+      "elapsed_ms": 4253,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q011",
+      "question": "中通未保价快件无法提供有效价值证明的怎么赔？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "中通快递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3377,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q012",
+      "question": "中通已保价快件部分损毁或内件短少时，赔偿金额怎么算？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "中通快递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5324,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q013",
+      "question": "中通规定单票快件内件价值超过多少应当拆分交寄？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "中通快递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4555,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q014",
+      "question": "中通要求索赔申请在多长时间内提出？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "中通快递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3431,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q015",
+      "question": "中通提供多长时间的免费快件查询服务？",
+      "type": "waybill",
+      "answerable": true,
+      "source_docs": [
+        "中通快递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3607,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q016",
+      "question": "申通规定单票交寄物价值超过多少应当保价？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "申通快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2
+      ],
+      "elapsed_ms": 3560,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q017",
+      "question": "申通未保价的文件类快件最高赔多少钱？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "申通快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        3
+      ],
+      "elapsed_ms": 4815,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q018",
+      "question": "申通未保价的非文件类物品快件最高赔多少钱？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "申通快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        4
+      ],
+      "elapsed_ms": 3274,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q019",
+      "question": "申通未保价且无法提供有效价值证明的怎么赔？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "申通快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2
+      ],
+      "elapsed_ms": 3659,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q020",
+      "question": "申通不足额保价的赔偿公式是什么？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "申通快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        3
+      ],
+      "elapsed_ms": 4532,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q021",
+      "question": "申通对文件类快件的保价申报有什么要求？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "申通快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4812,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q022",
+      "question": "韵达规定托寄物价值超过多少时应当声明并保价？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "韵达快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4608,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q023",
+      "question": "韵达未选择保价的快件怎么赔偿？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "韵达快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2
+      ],
+      "elapsed_ms": 5837,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q024",
+      "question": "韵达已保价快件的赔偿上限是多少？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "韵达快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3481,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q025",
+      "question": "韵达规定单票交寄物价值超过多少应当拆分邮寄？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "韵达快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3770,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q026",
+      "question": "韵达对二次派送仍无法投交的快件怎么收费？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "韵达快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 6661,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q027",
+      "question": "韵达对拖欠服务费的快件留置期是多久？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "韵达快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5030,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q028",
+      "question": "韵达的快件查询服务渠道和期限是什么？",
+      "type": "waybill",
+      "answerable": true,
+      "source_docs": [
+        "韵达快递-服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3686,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q029",
+      "question": "极兔规定单票物品申报价值最高是多少？超出怎么办？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2,
+        5
+      ],
+      "elapsed_ms": 3174,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q030",
+      "question": "极兔未选择保价的快件怎么赔偿？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4240,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q031",
+      "question": "极兔的代收货款服务单票金额上限和返款周期是什么？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4053,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q032",
+      "question": "极兔的回单服务承诺和收费标准是什么？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5309,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q033",
+      "question": "顺丰进出口件禁止寄递的范围包括哪些？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "顺丰速运-收寄标准.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3906,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q034",
+      "question": "顺丰是否会收寄现金、支票、票据、有价证券、古玩、字画、艺术品？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "顺丰速运-收寄标准.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 8269,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q035",
+      "question": "顺丰对酒类寄递有什么规定？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "顺丰速运-收寄标准.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3798,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q036",
+      "question": "顺丰是否收寄锂电池、粉末状物体、不明液体？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "顺丰速运-收寄标准.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5187,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q037",
+      "question": "快递末端网点应当自开办之日起多少日内备案？是否需要办理营业执照？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国务院-快递暂行条例.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3496,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q038",
+      "question": "经营快递业务的企业应在接到投诉之日起多少日内处理并告知用户？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国务院-快递暂行条例.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3823,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q039",
+      "question": "《邮政法》对未保价给据邮件丢失损毁的赔偿上限是怎么规定的？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "湖北省邮政管理局-快递消费者权益保护指南.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3354,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q040",
+      "question": "《快递服务》国家标准对同城和国内异地快递服务时限是怎么规定的？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "湖北省邮政管理局-快递消费者权益保护指南.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 6331,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q041",
+      "question": "快递延误时限是怎么规定的？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "湖北省邮政管理局-快递消费者权益保护指南.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3932,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q042",
+      "question": "快递延误的赔偿标准是什么？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "湖北省邮政管理局-快递消费者权益保护指南.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "elapsed_ms": 5858,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q043",
+      "question": "快递企业强行收取“转运费”“取件费”是否合法？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "湖北省邮政管理局-快递消费者权益保护指南.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5128,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q044",
+      "question": "《快递市场管理办法》规定企业公示的服务地域应以什么为基本单元？",
+      "type": "region",
+      "answerable": true,
+      "source_docs": [
+        "交通运输部-快递市场管理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5706,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q045",
+      "question": "服务种类、服务时限、资费标准等事项发生变更的，企业应提前多少日公告？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "交通运输部-快递市场管理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2
+      ],
+      "elapsed_ms": 3889,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q046",
+      "question": "企业未经用户同意把快件投递到智能快件箱或快递服务站，是否允许？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "交通运输部-快递市场管理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2
+      ],
+      "elapsed_ms": 5471,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q047",
+      "question": "企业抛扔、踩踏快件的，罚款标准是什么？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "交通运输部-快递市场管理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2
+      ],
+      "elapsed_ms": 5324,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q048",
+      "question": "企业不按照公示的服务地域投递快件的，罚款怎么算？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "交通运输部-快递市场管理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4154,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q049",
+      "question": "企业经营快递业务发生服务网络阻断的，应在多长时间内报告？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "交通运输部-快递市场管理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3467,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q050",
+      "question": "寄件人拒绝提供身份信息或提供不实身份信息的，快递企业能否收寄？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "交通运输部-快递市场管理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        3,
+        4
+      ],
+      "elapsed_ms": 5814,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q051",
+      "question": "《禁止寄递物品管理规定》中禁寄物品包括哪些大类？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-禁止寄递物品管理规定.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 5062,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q052",
+      "question": "《禁止寄递物品指导目录》共分多少类？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-禁止寄递物品管理规定.md"
+      ],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 4703,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q053",
+      "question": "寄递企业完成收寄后发现禁寄物品或者疑似禁寄物品的，应当怎么处理？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-禁止寄递物品管理规定.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        3
+      ],
+      "elapsed_ms": 5275,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q054",
+      "question": "寄递企业发现枪支、弹药、管制器具等物品时应当怎么办？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-禁止寄递物品管理规定.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        4
+      ],
+      "elapsed_ms": 7113,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q055",
+      "question": "邮政管理部门处理用户申诉采用什么方式？答复时限是多久？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-邮政业用户申诉处理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3555,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q056",
+      "question": "用户提出申诉需要满足什么前提条件？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-邮政业用户申诉处理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        3
+      ],
+      "elapsed_ms": 4942,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q057",
+      "question": "国内邮件、快件寄递服务质量问题的申诉时限是多久？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-邮政业用户申诉处理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 4405,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q058",
+      "question": "国际邮件、快件寄递服务质量问题的申诉时限是多久？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-邮政业用户申诉处理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 3567,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q059",
+      "question": "邮政管理部门的申诉专用电话号码是多少？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-邮政业用户申诉处理办法.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1
+      ],
+      "elapsed_ms": 6335,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q060",
+      "question": "《禁止寄递物品管理规定》要求寄递企业如何公示相关规定？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-禁止寄递物品管理规定.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        3
+      ],
+      "elapsed_ms": 3570,
+      "gold_hit_in_top5": true,
+      "multi_doc": false
+    },
+    {
+      "id": "q061",
+      "question": "圆通、中通、申通、韵达、极兔五家快递，未保价快件丢失的赔付上限分别是多少？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md",
+        "中通快递-快递服务协议.md",
+        "申通快递-服务协议.md",
+        "韵达快递-服务协议.md",
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2,
+        4,
+        5
+      ],
+      "elapsed_ms": 4033,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q062",
+      "question": "未保价且无法提供有效价值证明的快件，各家快递分别怎么赔？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md",
+        "中通快递-快递服务协议.md",
+        "申通快递-服务协议.md",
+        "韵达快递-服务协议.md",
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2,
+        3,
+        5
+      ],
+      "elapsed_ms": 5238,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q063",
+      "question": "各家快递对单票快件的保价申报价值上限与拆分要求是什么？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md",
+        "中通快递-快递服务协议.md",
+        "韵达快递-服务协议.md",
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "elapsed_ms": 6100,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q064",
+      "question": "快递延误的时限是怎么认定的？延误后如何赔偿？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "湖北省邮政管理局-快递消费者权益保护指南.md",
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2
+      ],
+      "elapsed_ms": 4437,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q065",
+      "question": "快递服务时限的国家标准是什么？各家协议对查询期限是怎么约定的？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "湖北省邮政管理局-快递消费者权益保护指南.md",
+        "中通快递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "elapsed_ms": 4908,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q066",
+      "question": "实名收寄在行政法规和行业标准中分别有什么要求？不出示证件怎么办？",
+      "type": "waybill",
+      "answerable": true,
+      "source_docs": [
+        "国务院-快递暂行条例.md",
+        "国家邮政局-邮件快件实名收寄验视操作规范.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        3,
+        5
+      ],
+      "elapsed_ms": 8801,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q067",
+      "question": "未经用户同意把快件放进快递柜是否合规？企业协议里对签收与丢失是怎么认定的？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "交通运输部-快递市场管理办法.md",
+        "圆通速递-快递服务协议.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2,
+        5
+      ],
+      "elapsed_ms": 7945,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q068",
+      "question": "用户申诉前必须先向企业投诉吗？企业处理投诉与管理部门答复的时限各是多久？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-邮政业用户申诉处理办法.md",
+        "国务院-快递暂行条例.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2,
+        4,
+        5
+      ],
+      "elapsed_ms": 4274,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q069",
+      "question": "各家快递的保价费是怎么收取的？",
+      "type": "amount",
+      "answerable": true,
+      "source_docs": [
+        "圆通速递-快递服务协议.md",
+        "极兔速递-标准快递与保价服务.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "elapsed_ms": 5958,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q070",
+      "question": "国际快件与国内快件在申诉时限和延误认定上有什么不同？",
+      "type": "policy",
+      "answerable": true,
+      "source_docs": [
+        "国家邮政局-邮政业用户申诉处理办法.md",
+        "湖北省邮政管理局-快递消费者权益保护指南.md"
+      ],
+      "refused": false,
+      "refusal_reason": "",
+      "cited_indices": [
+        2,
+        3
+      ],
+      "elapsed_ms": 4458,
+      "gold_hit_in_top5": true,
+      "multi_doc": true
+    },
+    {
+      "id": "q071",
+      "question": "你们公司食堂的午餐多少钱一份？",
+      "type": "policy",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 3069,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q072",
+      "question": "快递员招聘的学历门槛是什么？",
+      "type": "policy",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 3276,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q073",
+      "question": "从中国寄包裹到火星怎么计费？",
+      "type": "policy",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 4095,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q074",
+      "question": "这几家快递企业的股票代码分别是多少？",
+      "type": "policy",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 3596,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q075",
+      "question": "快递包裹可以指定在上午十点前送达吗？",
+      "type": "policy",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 4082,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q076",
+      "question": "春节期间快递会加收服务费吗？",
+      "type": "policy",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 4522,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q077",
+      "question": "快递单号开头的字母前缀代表什么含义？",
+      "type": "waybill",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 2713,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q078",
+      "question": "保价之后还能中途取消保价并退回保价费吗？",
+      "type": "amount",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 3888,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q079",
+      "question": "寄递黄金首饰的具体保价费率是多少？",
+      "type": "amount",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 3315,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    },
+    {
+      "id": "q080",
+      "question": "快递加盟网点转让需要办理什么手续？",
+      "type": "policy",
+      "answerable": false,
+      "source_docs": [],
+      "refused": true,
+      "refusal_reason": "no_citation",
+      "cited_indices": [],
+      "elapsed_ms": 3929,
+      "gold_hit_in_top5": null,
+      "multi_doc": false
+    }
+  ],
+  "实验名": "hierarchical+hybrid-k5",
+  "k": 5,
+  "切片策略": "hierarchical",
+  "检索策略": "hybrid",
+  "重排": "否",
+  "strategy": "hierarchical+hybrid"
+}
