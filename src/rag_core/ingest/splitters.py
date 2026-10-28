@@ -56,6 +56,54 @@ def _split_recursive(text: str, size: int, sep_idx: int = 0) -> list[str]:
     return units
 
 
+# overlap 起点对齐时，从硬切点往前最多看这么多字去找句读。
+# 24 字大约是一个中文长分句的一半：够越过「有价证券、」这类短词，
+# 又不至于让重叠部分无限膨胀、把块数拉上去。
+_OVERLAP_LOOKBACK = 24
+
+# 可以作为 overlap 起点的断点。刻意不含「）】」》」这类配对符号的右半：
+# 从它们后面起头读起来仍是半句，对齐没有价值。
+_BREAK_CHARS = "。；！？：，、\n"
+
+
+def _overlap_tail(cur: str, overlap: int, look_back: int = _OVERLAP_LOOKBACK) -> str:
+    """取末尾 overlap 个字作为下一块的重叠部分，并把起点对齐到句读之后。
+
+    直接切 `cur[-overlap:]` 不看边界，会把
+    「…二手物品、有价证券、重要文件…」切成「、重要文件…」，
+    新 chunk 以一个孤立的顿号开头，展示时像丢了前半句话。
+    实测这是系统性的：164 个 chunk 里 13 个（7.9%）以标点开头。
+
+    对齐办法是从硬切点往前最多看 look_back 字，遇到句读就从它后面开始。
+    往前找不到才退回硬切——不能无限往前，否则重叠越拉越长，块数跟着涨。
+
+    ### 只认句读，不认词边界
+
+    中文没有空格，切词要靠分词，而这里的目标只是「读起来不像被截断」，
+    不是「切出完整的语言学词」。为这个目标把 jieba 引入切分层，
+    会让切片结果依赖词典版本，切片就不再可复现。
+
+    ### 为什么两种切片策略共用这一处
+
+    fixed 与 hierarchical 的差异必须只有「是否按标题组织」一处。
+    overlap 语义若各写一套，E1/E2 的差异就无法归因到切片策略上。
+    """
+    if overlap <= 0 or len(cur) <= overlap:
+        return ""
+    start = len(cur) - overlap
+    floor = max(0, start - look_back)
+    # 从硬切点前一个字开始往前找，命中句读就取它后面那段：
+    # 这样新块不会以标点起头
+    for i in range(start - 1, floor - 1, -1):
+        if cur[i] in _BREAK_CHARS:
+            # 句读常连续出现（`。\n\n`、`；，`），命中一个后
+            # 紧跟着的还是断点，要一并剥掉才能真的吃到正文
+            return cur[i + 1:].lstrip(_BREAK_CHARS)
+    # 前 look_back 字内没有句读，只能硬切；
+    # 此时硬切点本身可能正好落在标点上，同样剥掉
+    return cur[start:].lstrip(_BREAK_CHARS)
+
+
 def _merge_units(units: list[str], size: int, overlap: int) -> list[str]:
     """贪心合并单元，相邻块之间保留 overlap 个字符的重叠。"""
     chunks: list[str] = []
@@ -72,7 +120,7 @@ def _merge_units(units: list[str], size: int, overlap: int) -> list[str]:
             continue
         if cur: # 放不下，落盘旧块，带 overlap 重启
             chunks.append(cur)  # 当前累积的 chunk 记为一块
-            cur = (cur[-overlap:] if 0 < overlap < len(cur) else "") + unit # 新 cur 长度 = overlap + len(unit)，size可能会超size
+            cur = _overlap_tail(cur, overlap) + unit # 新 cur 长度 = overlap + len(unit)，size可能会超size
         else:   # 当前累积的 chunk 为空，直接用当前单元初始化
             cur = unit
     if cur: # 最后一个 chunk 未落盘，直接记为一块
