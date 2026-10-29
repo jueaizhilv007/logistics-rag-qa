@@ -48,7 +48,9 @@ class IngestPipeline:
         """解析 + 判重 + 切分，但不向量化、不写入。
 
         dry-run 场景需要观察 chunk 内容与 heading_path 注入情况时使用。
-        返回 (IngestResult, chunks, doc)：doc 为 None 表示准备阶段就出错。
+        返回 (IngestResult, chunks, doc)。
+        doc 为 None 只表示解析阶段就失败（没有 doc 可返回）；
+        判重或切分失败时 doc 仍然有效，原因看 IngestResult.reason。
         """
         loader = self._loaders.get(path.suffix.lower())
         if loader is None:
@@ -68,7 +70,18 @@ class IngestPipeline:
                 None,
             )
 
-        if self.store.has_doc(doc.doc_id):
+        try:
+            indexed = self.store.has_doc(doc.doc_id)
+        except Exception as exc:  # noqa: BLE001
+            return (
+                # 判重查询失败 → 失败。不能当作「未入库」继续写，
+                # 否则同一文档会被重复入库，而日志看不出任何异常
+                IngestResult(source=str(path), status="error", reason=f"dedup: {exc}"),
+                [],
+                doc,
+            )
+
+        if indexed:
             return (
                 # 已索引 → 跳过（幂等去重）
                 IngestResult(source=str(path), status="skipped", doc_id=doc.doc_id, reason="already indexed"),

@@ -77,10 +77,14 @@ class LanceDBStore:
         self._ensure_table()
 
     def _table_exists(self) -> bool:
-        try:
-            return self.collection in list(self.db.table_names())
-        except Exception:
-            return False
+        """collection 是否已存在。
+
+        不吞异常：查询失败就抛，不要折成 False。
+        折成 False 会让 clear() 误判为「无需清理」而静默跳过，
+        随后 create_table 才报一个与真实原因无关的错——
+        真实故障信息在这一层就被丢掉了。
+        """
+        return self.collection in set(self.db.table_names())
 
     # 确保表存在，若不存在则建表
     def _ensure_table(self):
@@ -131,13 +135,18 @@ class LanceDBStore:
         self.log.info("已写入 %d 条 chunk 到 collection `%s`", len(rows), self.collection)
 
     def has_doc(self, doc_id: str) -> bool:
+        """判断该文档是否已入库。
+
+        刻意不吞异常。查询失败时若返回 False，调用方会把「库里已有」
+        误判成新文档而再写一遍：同一 doc_id 的 chunk 在库里存两份，
+        检索出现重复片段、白占 context 预算，RRF 里同一内容占两个名额，
+        而日志里一切正常。查询失败就该让调用方知道，
+        由 ingest 流水线折成入库错误——那里已有 error 出口。
+        """
         tbl = self._ensure_table()
         if tbl is None:
             return False
-        try:
-            return tbl.count_rows(filter=f"doc_id = '{doc_id}'") > 0
-        except Exception:
-            return False
+        return tbl.count_rows(filter=f"doc_id = '{doc_id}'") > 0
 
     def delete_doc(self, doc_id: str) -> None:
         tbl = self._ensure_table()

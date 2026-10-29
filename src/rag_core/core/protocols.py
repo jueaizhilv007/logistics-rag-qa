@@ -63,7 +63,15 @@ class BaseVectorStore(Protocol):
 
     def add(self, chunks: list[Chunk], vectors: list[list[float]]) -> None: ...
 
-    def has_doc(self, doc_id: str) -> bool: ...
+    def has_doc(self, doc_id: str) -> bool:
+        """该文档是否已入库。
+
+        返回 False 只表示「确定没有」，不能表示「查不出来」：
+        查询失败必须抛异常，由调用方折成入库错误。
+        若实现选择吞掉异常返回 False，同一文档会被重复写入，
+        而调用方无从分辨——这层语义由此写进契约。
+        """
+        ...
 
     def delete_doc(self, doc_id: str) -> None: ...
 

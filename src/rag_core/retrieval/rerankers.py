@@ -83,15 +83,20 @@ class ApiCrossEncoderReranker:
     ) -> list[RetrievedChunk]:
         """按 query 与候选的相关度重排，返回前 top_k 个。
 
-        送入请求的文本取 `embed_text` 而不是 `text`：
-        `embed_text` 才是参与检索的那一版（含标题链前缀），
-        重排是在这条语义链上的延续，换用干净正文会让两级排序口径不一致——
-        而这恰恰是 E2（层级切片）的价值要看的地方。
+        送入请求的文本用 `text`（干净正文），不用 `embed_text`：
+        其一，embed_text 只在入库时被 embed_documents 消费一次，不落库，
+        检索路径还原出的 Chunk 其 embed_text 恒等于 text，取它只是名义上的；
+        其二，cross-encoder 对 (query, doc) 独立打分，标题链是章节级前缀，
+        同章节所有片段共享同一段前缀，只会整体抬高章节内相关度、
+        压缩片段之间的区分度——重排要的恰恰是片段级的分辨能力。
+        向量检索用 embed_text 是因为 ANN 没有逐对打分的机会，
+        需要标题链替它说清「这块讲什么」；重排有逐对打分，
+        两个阶段输入不同不是口径不一致，是各取所需。
         """
         if not candidates:
             return []
 
-        docs = [c.chunk.embed_text or c.chunk.text for c in candidates]
+        docs = [c.chunk.text for c in candidates]
         scores = self._score(query, docs)
 
         if len(scores) < len(docs):

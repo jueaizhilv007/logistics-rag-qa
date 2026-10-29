@@ -41,9 +41,14 @@ class Chunk:
 
     text 与 embed_text 分离的原因：层级切片会把父级标题链拼进检索文本，
     但展示给用户时要的是干净正文。两者混用会让界面出现重复标题。
+
+    embed_text 的生命周期：它只在入库时被 embed_documents 消费一次，
+    向量库不落这一列（落库的是 text），因此检索路径还原出的 Chunk
+    其 embed_text 恒等于 text——下游不要指望从检索结果里拿到含标题链的版本。
+    需要标题链时读 heading_path 字段，它是结构化事实，永远在场。
     """
     text: str # 展示用正文，干净、不含标题链
-    embed_text: str # 检索用文本，含标题链前缀
+    embed_text: str # 入库阶段的检索用文本，含标题链前缀；还原后等于 text
     doc_id: str
     source: str
     doc_title: str = ""
@@ -81,8 +86,9 @@ class TextRecord:
     def to_chunk(self) -> Chunk:
         """还原为 Chunk。
 
-        稀疏检索路径不依赖 embedding 文本，
-        因此还原出的 Chunk 其 embed_text 与 text 一致。
+        embed_text 不落库，从库里还原时拿不到含标题链的版本，
+        因此令 embed_text = text：这字段对检索结果只是名义存在。
+        需要标题链时用 heading_path 拼，不要读 embed_text。
         """
         return Chunk(
             text=self.text,
