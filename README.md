@@ -25,6 +25,7 @@ uv sync --extra api         # 内核依赖 + 接入层依赖
 cp .env.example .env        # 填入 LLM 与 Embedding 的 API Key
 
 uv run rag-qa ingest        # 建索引：12 份物流规则文档 → 188 块
+                            # 块数随切片策略变：hierarchical=188、fixed=168，见下方对照表
 uv run rag-api              # 起服务，浏览器打开 http://127.0.0.1:8000
 ```
 
@@ -87,6 +88,10 @@ uv run python eval/run_retrieval.py --mode hybrid -k 5
 | E4 | `hierarchical` | `hybrid` | `true` | **否** | `uv run python eval/run_retrieval.py --mode hybrid -k 5` |
 
 `--mode` 可以临时覆盖配置里的 `retrieval.mode`，所以 E2→E3→E4 不需要重建索引。切**切片策略必须重建索引**——`uv run rag-qa ingest` 是幂等的（sha256 判重），但换了 strategy 要先 `rm -rf data/index`。
+
+进库块数**因切片策略而异，两个数都是对的**：`fixed` = **168** 块、`hierarchical` = **188** 块（每块都带标题链）。所以上方「快速开始」写 188、而 E1 那行写 168，不是笔误，是两组实验本就用的不同策略。
+
+**若你在新环境跑出 164 块，那是错的**：164 是 overlap 按字符硬切、句读对齐修复之前的旧值，出现它说明本地 splitters 没更新——那份索引里 164 个块有 13 个（7.9%）以标点开头，句子会被从中间切开。
 
 仓库当前 `config.yaml` 停在 E4 那套（`hierarchical` + `rerank.enabled: true`）。 `retrieval.mode` 保持 `vector` 是有意的：baseline 口径必须是纯向量，默认开 hybrid 会让 E2 之后的归因失效。
 
