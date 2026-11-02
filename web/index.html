@@ -214,6 +214,7 @@ const SAMPLES = [
 
 const $ = (id) => document.getElementById(id);
 let mode = "vector";
+let strategies = {};  // /api/meta 的 mode → 策略名映射，切换时用它立刻更新标签
 let busy = false;
 
 // 方案开关。切换只影响后续提问，已经问过的不重跑——
@@ -223,6 +224,11 @@ $("switch").addEventListener("click", (e) => {
   if (!btn || busy) return;
   mode = btn.dataset.mode;
   [...$("switch").children].forEach((b) => b.classList.toggle("on", b === btn));
+  // 标签要立刻反映「下一次提问将用哪套」，不能停在上一题的结果上：
+  // 它紧挨着开关，两者不一致时看的人会以为开关没生效。
+  // 每题各自实际用了哪套方案，仍由该题答案上方的「策略 xxx」标明，
+  // 所以这里改标签不会伪造对照——历史答案的标注一个字不动。
+  if (strategies[mode]) $("strategy").textContent = strategies[mode];
 });
 
 const sampleBox = $("samples");
@@ -492,10 +498,11 @@ function box(parent, kind, text) {
 fetch("/api/meta")
   .then((r) => r.json())
   .then((m) => {
+    strategies = m.strategies || {};
     mode = m.default_mode;
     [...$("switch").children].forEach((b) =>
       b.classList.toggle("on", b.dataset.mode === mode));
-    $("strategy").textContent = m.strategies[mode] || "";
+    $("strategy").textContent = strategies[mode] || "";
   })
   .catch(() => {
     [...$("switch").children].forEach((b) => (b.disabled = true));
