@@ -47,6 +47,27 @@ uv run rag-api              # 起服务，浏览器打开 http://127.0.0.1:8000
 uv run python -c "import rag_core; print(rag_core.__version__)"
 ```
 
+- `ingest` 是幂等的（按 sha256 判重）。**若整个目录是从别的机器拷来的，会看到 12 skipped / 0 indexed**——跳过只说明索引已存在，不代表这台机器真的建过库，也不代表 `.env` 里的 key 有效。验证已有索引：
+
+```bash
+uv run python -c "
+import lancedb
+rows = lancedb.connect('./data/index').open_table('docs').to_arrow().to_pylist()
+h = sum(1 for r in rows if (r.get('heading_path') or '').strip())
+print(len(rows), '块 /', h, '块带标题链')
+"
+```
+
+  期望 **188 / 188**。其他数字的含义：168 = 用 `fixed` 策略建的、164 = splitters 未更新（见下方说明）、376 = 重复入库。
+
+- 想真正验证新机器能从零建库（切块 → 调 embedding → 写库，顺带验证 `.env`）：
+
+```bash
+rm -rf data/index && uv run rag-qa ingest
+```
+
+  期望 12 份全部 indexed、0 skipped、0 error，块数 188。
+
 命令行问答：
 
 ```bash
