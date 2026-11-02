@@ -21,12 +21,29 @@
 ## 快速开始
 
 ```bash
-uv sync --extra api         # 内核依赖 + 接入层依赖
+# 1) 安装 uv（已装可跳过）
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# 国内网络：上面这条会卡在 GitHub 下载，改用 PyPI 镜像——
+#   pip install uv -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 2) 依赖与密钥
+uv sync --extra api         # 内核依赖 + 接入层依赖（fastapi / uvicorn / sse-starlette）
 cp .env.example .env        # 填入 LLM 与 Embedding 的 API Key
 
+# 3) 建索引、起服务
 uv run rag-qa ingest        # 建索引：12 份物流规则文档 → 188 块
                             # 块数随切片策略变：hierarchical=188、fixed=168，见下方对照表
 uv run rag-api              # 起服务，浏览器打开 http://127.0.0.1:8000
+```
+
+- Python 版本由 `.python-version` 固定为 3.11，`uv sync` 自动准备，不碰系统 Python。
+  国内网络若卡在这步：uv 下载 Python 同样走 GitHub，先用 conda/系统装好 3.11+，uv 会直接使用。
+- 国内网络 `uv sync` 慢：`export UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple`
+  （`pyproject.toml` 已配清华源但未设 `default`，PyPI 仍是默认。）
+- 验证内核可 import 且无副作用：
+
+```bash
+uv run python -c "import rag_core; print(rag_core.__version__)"
 ```
 
 命令行问答：
@@ -105,21 +122,6 @@ uv run python eval/run_retrieval.py --mode hybrid -k 5
 ### 关于 RAGAS
 
 未接入，优先级低于自研检索指标。Recall@5 / HitRate@3 是判定「检索有没有召回」的硬指标，不依赖 LLM 评分、可复现；RAGAS 的四指标依赖评分模型且其分数与该评分模型强耦合。本项目要回答的问题是「切片与检索策略各自贡献多少」，自研指标已足够，且不会因为换评分模型而变动。
-
-## 安装
-
-```bash
-uv python pin 3.11     # 已在 .python-version 中固定，不碰系统 Python
-uv sync                # 内核依赖
-uv sync --extra api    # 接入层依赖（fastapi / uvicorn / sse-starlette），S6 起需要
-cp .env.example .env   # 填入 LLM 与 Embedding 的 API Key
-```
-
-验证内核可 import 且无副作用：
-
-```bash
-uv run python -c "import rag_core; print(rag_core.__version__)"
-```
 
 ## 两种装配方式
 
