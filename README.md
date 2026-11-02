@@ -28,7 +28,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # 2) 依赖与密钥
 uv sync --extra api         # 内核依赖 + 接入层依赖（fastapi / uvicorn / sse-starlette）
-cp .env.example .env        # 填入 LLM 与 Embedding 的 API Key
+cp .env.example .env        # 复制模板
+vim .env                    # 填入 EMBEDDING_API_KEY 与 LLM_API_KEY
 
 # 3) 建索引、起服务
 uv run rag-qa ingest        # 建索引：12 份物流规则文档 → 188 块
