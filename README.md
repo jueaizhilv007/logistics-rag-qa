@@ -121,12 +121,16 @@ uv run python eval/run_retrieval.py --mode hybrid -k 5
 
 | 实验 | `chunking.strategy` | `retrieval.mode` | `rerank.enabled` | 重建索引 | 命令 |
 | --- | --- | --- | --- | --- | --- |
-| E1 | `fixed` | `vector` | `false` | 是（168 块） | `uv run rag-qa ingest && uv run python eval/run_retrieval.py --mode vector -k 5` |
-| E2 | `hierarchical` | `vector` | `false` | 是（188 块） | `uv run rag-qa ingest && uv run python eval/run_retrieval.py --mode vector -k 5` |
+| E1 | `fixed` | `vector` | `false` | 是（168 块） | `rm -rf data/index && uv run rag-qa ingest && uv run python eval/run_retrieval.py --mode vector -k 5` |
+| E2 | `hierarchical` | `vector` | `false` | 是（188 块） | `rm -rf data/index && uv run rag-qa ingest && uv run python eval/run_retrieval.py --mode vector -k 5` |
 | E3 | `hierarchical` | `hybrid` | `false` | **否** | `uv run python eval/run_retrieval.py --mode hybrid -k 5` |
 | E4 | `hierarchical` | `hybrid` | `true` | **否** | `uv run python eval/run_retrieval.py --mode hybrid -k 5` |
 
-`--mode` 可以临时覆盖配置里的 `retrieval.mode`，所以 E2→E3→E4 不需要重建索引。切**切片策略必须重建索引**——`uv run rag-qa ingest` 是幂等的（sha256 判重），但换了 strategy 要先 `rm -rf data/index`。
+`--mode` 可以临时覆盖配置里的 `retrieval.mode`，所以 E2→E3→E4 不需要重建索引。切**切片策略必须重建索引**——`uv run rag-qa ingest` 是幂等的（sha256 判重），换了 strategy 不先删索引就会全部 skipped，库里仍是旧策略的块。
+
+重建索引按这个顺序：**先 `rm -rf data/index`，再改 `chunking.strategy`，最后 `uv run rag-qa ingest`**（删索引前先停掉 `rag-api`，免得它拿着已删除的目录报错）。顺序本身不影响结果，影响的是漏一步时的后果：先改配置再删、漏掉「删」这步，会得到一份标签写着 `fixed`、实际是 hierarchical 的索引——**假数据，会直接污染结论**；先删再改、漏掉「改」，只是重新切出和原来一样的块，**浪费几分钟，数据不假**。
+
+**跑评测前先确认块数**（快速开始里有那条查询命令）：E1 应是 168、E2 应是 188。打出别的数字就别往下跑——这条检查同时兜住上面两种漏步。
 
 进库块数**因切片策略而异，两个数都是对的**：`fixed` = **168** 块、`hierarchical` = **188** 块（每块都带标题链）。所以上方「快速开始」写 188、而 E1 那行写 168，不是笔误，是两组实验本就用的不同策略。
 
